@@ -2,58 +2,14 @@ import csv
 import math
 import similarity
 from geopy.distance import geodesic
-from dataclasses import dataclass
+# from dataclasses import dataclass
 from datetime import timedelta,datetime
 from networkx import Graph
 from pprint import pprint
 from numpy import argmax,argmin
 from typing import List,Set
+from .algoritmos.trajetoria import process_trajectories, Point, Trajectory
 
-@dataclass
-class Point:
-    name: str
-    user_id: str
-    venue_id: Set[str]
-    venue_category_id: Set[str]
-    latitude: float
-    longitude: float
-    timezone_offset: int
-    utc_timestamp: datetime
-    duration: float
-
-@dataclass
-class Trajectory:
-    trajectory: List[Point]
-    n: int = 1
-
-def main(name,anonymity_criteria):
-    trajectories = return_dict(name)
-    trajectories = split_trajectories(trajectories)
-    trajectories = add_duration(trajectories)
-    similarity_matrix = create_similarity_matrix(trajectories)
-    anonymized = merge_trajectories(trajectories,similarity_matrix,anonymity_criteria)
-
-def return_dict(name):
-    trajectories = {}
-    with open(name) as csvfile:
-        reader = csv.reader(csvfile)
-        next(reader)
-        for row in reader:
-            user_id, *data = row
-            if user_id not in trajectories:
-                trajectories[user_id] = Trajectory([])
-            point_created = Point(
-                row[1],
-                row[0],
-                {row[1]},
-                {row[2]},
-                float(row[4]),
-                float(row[5]),
-                int(row[6]),
-                datetime.strptime(row[7],'%a %b %d %H:%M:%S %z %Y'),
-                timedelta(hours=0))
-            trajectories[user_id].trajectory.append(point_created)
-    return trajectories
 
 #merging two spatiotemporal points, returns a new Point of the merged locations
 def merge_points(point_one,point_two,diversity_criteria,closeness_criteria,trajectories):
@@ -131,26 +87,6 @@ def nearest_points(point: Point, g: Graph,n: int = 10):
         ], key=lambda k: k[1])
     return nearest[:n]
 
-#receives a trajectory list and generates a new one with the duration category updated
-def add_duration(trajectories):
-    new_list = []
-    for trajectory in trajectories:
-        #iterate in each segment of the trajectory
-        point_one = trajectory.trajectory[0] #the point that will be used as a comparison
-        new_trajectory = Trajectory([])
-        for segment in trajectory.trajectory[1:]:
-            if point_one.venue_id != segment.venue_id:
-                new_trajectory.trajectory.append(point_one)
-                point_one = segment
-            #if its the same location just update the duration of it
-            else:
-                timestamp_one = point_one.utc_timestamp
-                timestamp_two = segment.utc_timestamp
-                new_duration = timestamp_two - timestamp_one
-                point_one.duration = new_duration + point_one.duration
-        new_trajectory.trajectory.append(point_one)
-        new_list.append(new_trajectory)
-    return new_list
 
 def build_neighbours_matrix(trajectories):
     matrix = []
@@ -287,27 +223,6 @@ def merge_trajectories(trajectories,similarity_matrix,anonymity_criteria):
             possible_to_merge = False
     return generalized_dataset
 
-#returns a list of trajectories splitted by day
-def split_trajectories(trajectories):
-    splitted_trajectories = []
-    for user_id in trajectories:
-        trajectory = trajectories[user_id].trajectory
-        compare = trajectory[0]
-        lista = Trajectory([compare])
-        for point in trajectory[1:]:
-            if compare.utc_timestamp.day == point.utc_timestamp.day:
-                lista.trajectory.append(point)
-            else:
-                splitted_trajectories.append(lista)
-                lista = Trajectory([point])
-            compare = point
-        splitted_trajectories.append(lista)
-
-    splitted_trajectories = [trajectory
-                            for trajectory in splitted_trajectories
-                            if len(trajectory.trajectory) > 6]
-
-    return splitted_trajectories
 
 def create_similarity_matrix(trajectories):
     matrix = []
@@ -378,5 +293,10 @@ def add_similarity(matrix,trajectories,trajectory1):
         i += 1
     matrix.append(cost)
 
+def main(name,anonymity_criteria):
+    trajectories = process_trajectories(name)
+    similarity_matrix = create_similarity_matrix(trajectories)
+    anonymized = merge_trajectories(trajectories,similarity_matrix,anonymity_criteria)
+
 if __name__ == '__main__':
-    main('dataset_TSMC2014_TKY.csv', 3)
+    main('resources/dataset_TSMC2014_TKY.csv', 3)
