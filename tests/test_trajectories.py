@@ -1,4 +1,4 @@
-from algoritmos.trajetoria import return_dict, create_point, Trajectory, Point, split_trajectories, add_duration
+from algoritmos.trajetoria import create_raw_trajectories, create_point, Trajectory, Point, split_trajectories, add_duration
 from datetime import timedelta, datetime, timezone
 from typing import List, Set, Sequence
 
@@ -14,6 +14,22 @@ def test_create_point():
     assert float(point[4]) == created_point.latitude
     assert float(point[5]) == created_point.longitude
     assert datetime.strptime(point[7],'%a %b %d %H:%M:%S %z %Y') == created_point.utc_timestamp
+
+
+def test_create_raw_trajectories():
+    dataset_name = 'tests/resources/datasetTest.csv'
+
+    expected_trajectories = {
+        '1': Trajectory(trajectory=[
+                Point(name='10', user_id='1', venue_id={'10'}, venue_category_id={'10'}, latitude=0.0, longitude=0.0, utc_timestamp=datetime(2012, 4, 3, 18, 17, 18, tzinfo=timezone.utc), duration=timedelta(0)),
+                Point(name='11', user_id='1', venue_id={'11'}, venue_category_id={'11'}, latitude=10.0, longitude=5.0, utc_timestamp=datetime(2012, 4, 3, 19, 20, 9, tzinfo=timezone.utc), duration=timedelta(0)),
+                Point(name='12', user_id='1', venue_id={'12'}, venue_category_id={'12'}, latitude=9.0, longitude=8.0, utc_timestamp=datetime(2012, 4, 4, 20, 21, tzinfo=timezone.utc), duration=timedelta(0))
+            ], n=1),
+    }
+
+    trajectories = create_raw_trajectories(dataset_name)
+
+    assert trajectories == expected_trajectories
 
 
 def test_split_trajectory():
@@ -39,6 +55,7 @@ def test_split_trajectory():
 
     assert splitted_trajectories == expected_trajectories
 
+
 def test_add_duration():
     trajectories = [
         Trajectory(trajectory=[
@@ -58,8 +75,3 @@ def test_add_duration():
     with_duration = add_duration(trajectories)
 
     assert with_duration == expected_result
-
-
-def test_return_dict_basic():
-    dataset_name = 'datasetTest.csv'
-    #TODO
