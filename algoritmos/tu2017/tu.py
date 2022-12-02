@@ -199,7 +199,7 @@ def get_closeness(r, R):
 
 #merging trajectories // acho que vou precisar passar o graph tb..
 # The algorithm will iterate until all the trajectories in T have been k-anonymized.
-def merge_trajectories(trajectories,similarity_matrix,anonymity_criteria):
+def merge_trajectories(trajectories: list[Trajectory], similarity_matrix, anonymity_criteria: int):
     generalized_dataset = []
     possible_to_merge = True #depois penso em um nome melhor
     while possible_to_merge: #enquanto tiver duas trajetorias com o k menor que o criterio
@@ -223,18 +223,6 @@ def merge_trajectories(trajectories,similarity_matrix,anonymity_criteria):
             possible_to_merge = False
     return generalized_dataset
 
-
-def create_similarity_matrix(trajectories):
-    matrix = []
-    for trajectory_one in trajectories:
-        lista = []
-        for trajectory_two in trajectories:
-            if trajectory_one == trajectory_two:
-                lista.append(float('-inf'))
-            else:
-                lista.append(similarity.msm(trajectory_one,trajectory_two))
-        matrix.append(lista)
-    return matrix
 
 #I plan on organizing a lil better this method
 def merge(trajectory_one,trajectory_two,trajectories):
@@ -295,8 +283,8 @@ def add_similarity(matrix,trajectories,trajectory1):
 
 def main(name,anonymity_criteria):
     trajectories = process_trajectories(name)
-    similarity_matrix = create_similarity_matrix(trajectories)
-    anonymized = merge_trajectories(trajectories,similarity_matrix,anonymity_criteria)
+    # similarity_matrix = create_similarity_matrix(trajectories)
+    # anonymized = merge_trajectories(trajectories,similarity_matrix,anonymity_criteria)
 
 if __name__ == '__main__':
     main('resources/dataset_TSMC2014_TKY.csv', 3)

@@ -9,6 +9,7 @@ class Point:
     user_id: str
     venue_id: Set[str]
     venue_category_id: Set[str]
+    venue_category: str
     latitude: float
     longitude: float
     # timezone_offset: int
@@ -18,7 +19,6 @@ class Point:
 @dataclass
 class Trajectory:
     trajectory: List[Point]
-    n: int = 1
 
 def create_raw_trajectories(name: str) -> dict[str, Trajectory]:
     trajectories = {}
@@ -31,8 +31,8 @@ def create_raw_trajectories(name: str) -> dict[str, Trajectory]:
                 trajectories[user_id] = Trajectory([])
             point_created = create_point(row)
             trajectories[user_id].trajectory.append(point_created)
-            if i == 15:
-                break
+            # if i == 1000000:
+                # break
     return trajectories
 
 def create_point(point_info: Sequence[str]) -> Point:
@@ -41,6 +41,7 @@ def create_point(point_info: Sequence[str]) -> Point:
         point_info[0], # user ID
         {point_info[1]}, # venue ID
         {point_info[2]}, # venue category ID
+        point_info[3],
         float(point_info[4]), #latitude
         float(point_info[5]), #longitude
         # int(point_info[6]),
@@ -70,7 +71,7 @@ def split_trajectories(trajectories: dict[str, Trajectory], min_traj_amount: int
 
     splitted_trajectories = [trajectory
                             for trajectory in splitted_trajectories
-                            if len(trajectory.trajectory) > min_traj_amount]
+                            if len(trajectory.trajectory) >= min_traj_amount]
 
     return splitted_trajectories
 
@@ -99,11 +100,12 @@ def add_duration(trajectories: list[Trajectory]) -> list[Trajectory]:
 
 def process_trajectories(filename: str) -> list[Trajectory]:
     raw = create_raw_trajectories(filename)
-    splitted = split_trajectories(raw)
+    splitted = split_trajectories(raw, 1)
     return add_duration(splitted)
 
 if __name__ == '__main__':
     raw_traj = create_raw_trajectories('resources/dataset_TSMC2014_TKY.csv')
+    print(raw_traj)
     splitted = split_trajectories(raw_traj, 1)
     trajectories_w_duration = add_duration(splitted)
 #     main('resources/dataset_TSMC2014_TKY.csv', 3)
