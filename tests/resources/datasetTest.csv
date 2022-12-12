@@ -1,4 +1,4 @@
 userId,venueId,venueCategoryId,venueCategory,latitude,longitude,timezoneOffset,utcTimestamp
-1,10,10,randomName,0.0,0.0,,Tue Apr 03 18:17:18 +0000 2012
-1,11,11,randomName,10.0,5.0,,Tue Apr 03 19:20:09 +0000 2012
-1,12,12,randomName,9.0,8.0,,Tue Apr 04 20:21:00 +0000 2012
+1,10,10,Store,0.0,0.0,,Tue Apr 03 18:17:18 +0000 2012
+1,11,11,Shop,10.0,5.0,,Tue Apr 03 19:20:09 +0000 2012
+1,12,12,Station,9.0,8.0,,Tue Apr 04 20:21:00 +0000 2012
