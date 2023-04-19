@@ -1,14 +1,15 @@
 import csv
 from dataclasses import dataclass
 from datetime import timedelta, datetime
-from typing import List, Set, Sequence
+from typing import Sequence
+
 
 @dataclass
 class Point:
     name: str
     user_id: str
-    venue_id: Set[str]
-    venue_category_id: Set[str]
+    venue_id: set[str]
+    venue_category_id: set[str]
     venue_category: str
     latitude: float
     longitude: float
@@ -16,9 +17,11 @@ class Point:
     utc_timestamp: datetime
     duration: float
 
+
 @dataclass
 class Trajectory:
-    trajectory: List[Point]
+    trajectory: list[Point]
+
 
 def create_raw_trajectories(name: str) -> dict[str, Trajectory]:
     trajectories = {}
@@ -32,21 +35,22 @@ def create_raw_trajectories(name: str) -> dict[str, Trajectory]:
             point_created = create_point(row)
             trajectories[user_id].trajectory.append(point_created)
             # if i == 1000000:
-                # break
+            # break
     return trajectories
+
 
 def create_point(point_info: Sequence[str]) -> Point:
     return Point(
-        point_info[1], # não lembro da necessidade do name
-        point_info[0], # user ID
-        {point_info[1]}, # venue ID
-        {point_info[2]}, # venue category ID
-        point_info[3],
-        float(point_info[4]), #latitude
-        float(point_info[5]), #longitude
+        name=point_info[1],
+        user_id=point_info[0],
+        venue_id={point_info[1]},
+        venue_category_id={point_info[2]},
+        venue_category=point_info[3],
+        latitude=float(point_info[4]),
+        longitude=float(point_info[5]),
         # int(point_info[6]),
-        datetime.strptime(point_info[7],'%a %b %d %H:%M:%S %z %Y'), # utc Timestamp
-        timedelta(hours=0))
+        utc_timestamp=datetime.strptime(point_info[7], '%a %b %d %H:%M:%S %z %Y'),
+        duration=timedelta(hours=0))
 
 
 # acho que dá pra melhorar, dar um limite maximo de diferença de horário ou de proximidade
@@ -70,10 +74,11 @@ def split_trajectories(trajectories: dict[str, Trajectory], min_traj_amount: int
         splitted_trajectories.append(lista)
 
     splitted_trajectories = [trajectory
-                            for trajectory in splitted_trajectories
-                            if len(trajectory.trajectory) >= min_traj_amount]
+                             for trajectory in splitted_trajectories
+                             if len(trajectory.trajectory) >= min_traj_amount]
 
     return splitted_trajectories
+
 
 def add_duration(trajectories: list[Trajectory]) -> list[Trajectory]:
     """
@@ -88,7 +93,7 @@ def add_duration(trajectories: list[Trajectory]) -> list[Trajectory]:
             if point_one.venue_id != segment.venue_id:
                 new_trajectory.trajectory.append(point_one)
                 point_one = segment
-            #if its the same location just update the duration of it
+            # if its the same location just update the duration of it
             else:
                 timestamp_one = point_one.utc_timestamp
                 timestamp_two = segment.utc_timestamp
@@ -98,10 +103,12 @@ def add_duration(trajectories: list[Trajectory]) -> list[Trajectory]:
         new_list.append(new_trajectory)
     return new_list
 
+
 def process_trajectories(filename: str) -> list[Trajectory]:
     raw = create_raw_trajectories(filename)
     splitted = split_trajectories(raw, 1)
     return add_duration(splitted)
+
 
 if __name__ == '__main__':
     raw_traj = create_raw_trajectories('resources/dataset_TSMC2014_TKY.csv')
