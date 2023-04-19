@@ -11,6 +11,64 @@ from typing import List,Set
 from .algoritmos.trajetoria import process_trajectories, Point, Trajectory
 
 
+def merging_trajectories(trajectories, merge_cost_matrix, delta_k):
+    """
+    """
+    graph = trajectories
+    generalized_dataset = []
+
+    while len(trajectories) > 2:
+
+        i, j = argmin(merge_cost_matrix)
+
+        # new trajectory
+        tm = merge(trajectories[i], trajectories[j])
+        nm = trajectories[i].n + trajectories[j].n
+
+        # delete
+        delete(trajectories, trajectories[i], trajectories[j])
+        delete(merge_cost_matrix, trajectories[i], trajectories[j])
+
+        if nm < delta_k:
+            for tn in trajectories:
+                Cmn = calcCost(Gn, Gm)
+            add(trajectories, tm)
+        else:
+            add(generalized_dataset, tm)
+
+
+def merge(pointA, pointB, delta_l, delta_t):
+    """
+    """
+
+    tc = min(ta,tb)
+    dc = max (ta+da, tb+db) - tc
+
+    lc1 = getConnectedRegion(la, lb)
+
+    while lc1 < delta_l:
+        x = getNeighbours(lc1)
+        for i in enumerate(len(x)):
+            r = {lc1, x[i]}
+            b[i] = delta_r
+
+        i = argmax(b)
+        lc1 = {lc1, x[i]}
+
+    lc2 = lc1
+
+    while lc2 < delta_t:
+        x = getNeighbours(lc2)
+        for i in enumerate(len(x)):
+            r = {lc2, x[i]}
+            b[i] = delta_r
+        i = argmin(b)
+        lc2 = {lc2, x[i]}
+
+    lc = lc2
+
+##### OLD
+
 #merging two spatiotemporal points, returns a new Point of the merged locations
 def merge_points(point_one,point_two,diversity_criteria,closeness_criteria,trajectories):
     timestamp1 = point_one.utc_timestamp
@@ -117,64 +175,12 @@ def generate_distance_graph(points: List[Point]):
     for point, node in zip(points, g.nodes):
         g.nodes[node]['point'] = point
     return g
-#to know if venue 2 and venue1 are neighbours
-def is_neighbour(graph,venue1,venue2):
-    for neighbor, _ in graph[venue1]:
-        if neighbor == venue2:
-            return True
-    return False
 
 def calculate_distance(point_one,point_two):
     coordinate_one =  (point_one.latitude, point_one.longitude)
     coordinate_two = (point_two.latitude,point_two.longitude)
     return geodesic(coordinate_one,coordinate_two).miles
 
-def Dijkstra(graph, source):
-    queue = set()
-    distances = {}
-    previous = {}
-    for vertex in graph:
-        distances[vertex] = float('inf')
-        previous[vertex] = None
-        queue.add(vertex)
-    for venue_id in source.venue_id:
-        distances[venue_id] = 0
-
-    while queue:
-        u = min(queue, key=lambda k: distances[k])
-        queue.remove(u)
-
-        for neighbor in graph[u]:
-            venue_id, distance = neighbor
-            alt = distances[u] + distance
-            if alt < distances[venue_id]:
-                distances[venue_id] = alt
-                previous[venue_id] = u
-
-    return distances,previous
-
-def get_connected_region(graph,source, destiny):
-    distances,previous = Dijkstra(graph,source)
-    path = [destiny]
-    it = next(iter(destiny.venue_id))
-    while destiny != source:
-        destiny = previous[it]
-        if destiny is None:
-            break
-        path.append(destiny)
-        it = destiny
-    return [*reversed(path + [source])]
-
-#receives a list of venue_ids and returns a list of neighbors
-def get_neighbors(locations,graph):
-    neighbors = set()
-    for location in locations:
-        if isinstance(location, str):
-            neighbors |= {*graph[location]}
-        else:
-            for venue_id in location.venue_id:
-                neighbors |= {*graph[venue_id]}
-    return neighbors
 
 #get how many diverse venue_ids we have in a point
 def get_diversity(places):
