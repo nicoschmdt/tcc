@@ -15,7 +15,7 @@ class Point:
     longitude: float
     # timezone_offset: int
     utc_timestamp: datetime
-    duration: float
+    duration: timedelta
 
 
 @dataclass

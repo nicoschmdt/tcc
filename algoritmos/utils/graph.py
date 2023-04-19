@@ -1,43 +1,64 @@
+import math
 from dataclasses import dataclass, field
+from typing import List
+
+from algoritmos.utils.semantic import SemanticPoint
+
 
 @dataclass
 class Region:
-    points: list[TuPoint] # talvez usar sets
-    neighbours: list[Region] = field(default_factory=list)
+    center_point: SemanticPoint
+    area: int
+    points: List[SemanticPoint]
+    neighbours: List['Region'] = field(default_factory=list)
+
+    def is_inside(self, point: SemanticPoint) -> bool:
+        x_part = math.pow(self.center_point.latitude - point.latitude, 2)
+        y_part = math.pow(self.center_point.longitude - point.longitude, 2)
+        formula_result = math.sqrt(x_part + y_part)
+
+        if formula_result > self.area:
+            return False
+        return True
+
+    def add_point(self, point: SemanticPoint) -> None:
+        self.points.append(point)
+
 
 @dataclass
 class Graph:
-
     vertices: set[Region]
 
-    def add_vertex(region: Region) -> None:
+    def add_vertex(self, region: Region) -> None:
         """
         Adiciona um vértice no grafo
         """
-        vertices.add(region)
+        self.vertices.add(region)
 
-    def connect(region_a: Region, region_b: Region, weight):
-        """
-        Adiciona vizinhos à um vértice
-        usa o peso
-        """
+    def prune_and_simplify(self):
         pass
 
-    def get_neighbours():
-        """
-        Pega os vizinhos de um vértice
-        """
-        pass
+    # def connect(region_a: Region, region_b: Region, weight):
+    #     """
+    #     Adiciona vizinhos à um vértice
+    #     usa o peso
+    #     """
+    #     pass
 
-    def merge(a: Vertex, b: Vertex) -> Vertex:
-        pass
+    # def get_neighbours():
+    #     """
+    #     Pega os vizinhos de um vértice
+    #     """
+    #     pass
+    #
+    # def merge(a: Vertex, b: Vertex) -> Vertex:
+    #     pass
 
-
-    def dijkstra():
-        """
-        implementar dijkstra
-        """
-        pass
+    # def dijkstra():
+    #     """
+    #     implementar dijkstra
+    #     """
+    #     pass
 
 # def Dijkstra(graph, source):
 #     queue = set()
