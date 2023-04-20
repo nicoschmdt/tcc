@@ -1,5 +1,4 @@
-import numpy as np
-from .treatData import PoiCategory, TuTrajectory, TuPoint
+from .treatData import PoiCategory, SemanticTrajectory, SemanticPoint
 from datetime import timedelta, datetime, timezone
 from geopy.distance import geodesic
 
@@ -7,7 +6,7 @@ from geopy.distance import geodesic
 # 10 and 0.5 are thresholds
 # preciso entender o que esse método faz e como faz
 # eu sei que ele ve a similaridade entre duas trajetorias
-def msm(trajectory_a: TuTrajectory, trajectory_b: TuTrajectory):
+def msm(trajectory_a: SemanticTrajectory, trajectory_b: SemanticTrajectory):
     results = []
     for point_a in trajectory_a.trajectory:
         line = []
@@ -46,7 +45,7 @@ def distance(a, b):
 
 
 # time dimension
-def time(a: TuPoint, b: TuPoint) -> float:
+def time(a: SemanticPoint, b: SemanticPoint) -> float:
     tempo2_a = a.utc_timestamp + a.duration
     tempo2_b = b.utc_timestamp + b.duration
     if tempo2_a < b.utc_timestamp or tempo2_b < a.utc_timestamp:
@@ -69,7 +68,7 @@ def semantics(a, b):
     return 0
 
 
-def create_cost_matrix(trajectories: list[TuTrajectory], weights: dict[str, int]):
+def create_cost_matrix(trajectories: list[SemanticTrajectory], weights: dict[str, int]):
     """
     Cria a matriz de custo C.
     Como Cij == Cji a matriz é preenchida somente na parte superior
@@ -93,7 +92,7 @@ def create_cost_matrix(trajectories: list[TuTrajectory], weights: dict[str, int]
     return matrix
 
 
-def spatio_temporal_loss(trajectory_a: TuTrajectory, trajectory_b: TuTrajectory, weights: dict[str, int]):
+def spatio_temporal_loss(trajectory_a: SemanticTrajectory, trajectory_b: SemanticTrajectory, weights: dict[str, int]):
     """
     Calcula a perda espaço-temporal entre duas trajetórias
     """
@@ -101,7 +100,7 @@ def spatio_temporal_loss(trajectory_a: TuTrajectory, trajectory_b: TuTrajectory,
     pass
 
 
-def point_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int):
+def point_loss(point_a: SemanticPoint, point_b: SemanticPoint, n_a: int, n_b: int):
     """
     Args: n_a e n_b são a quantidade de trajetórias presentes na trajetória recebida anteriormente, é o parametro n
     Calcula a perda espaço-temporal da junção de dois pontos
@@ -127,7 +126,7 @@ def calculate_new_duration(point_a: datetime, point_b: datetime) -> datetime:
     return point_a
 
 
-def temporal_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int):
+def temporal_loss(point_a: SemanticPoint, point_b: SemanticPoint, n_a: int, n_b: int):
     """
     Calcula a perda temporal da junção de dois pontos
     0Tm = 8 horas
@@ -147,7 +146,7 @@ def temporal_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int):
     return min(teta_star, 1)
 
 
-def spatial_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int):
+def spatial_loss(point_a: SemanticPoint, point_b: SemanticPoint, n_a: int, n_b: int):
     """
     Calcula a perda espacial da junção de dois pontos
     0Lm = 25km²
@@ -160,10 +159,10 @@ def spatial_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int):
 
 
 if __name__ == "__main__":
-    a = TuPoint(name='10', user_id='1', category={PoiCategory.Business}, latitude=0.0, longitude=0.0,
-                utc_timestamp=datetime(2012, 4, 3, 18, 20, 0, tzinfo=timezone.utc), duration=timedelta(seconds=3600))
-    b = TuPoint(name='12', user_id='2', category={PoiCategory.Transport}, latitude=9.0, longitude=8.0,
-                utc_timestamp=datetime(2012, 4, 3, 19, 30, tzinfo=timezone.utc), duration=timedelta(0))
+    a = SemanticPoint(name='10', user_id='1', category={PoiCategory.Business}, latitude=0.0, longitude=0.0,
+                      utc_timestamp=datetime(2012, 4, 3, 18, 20, 0, tzinfo=timezone.utc), duration=timedelta(seconds=3600))
+    b = SemanticPoint(name='12', user_id='2', category={PoiCategory.Transport}, latitude=9.0, longitude=8.0,
+                      utc_timestamp=datetime(2012, 4, 3, 19, 30, tzinfo=timezone.utc), duration=timedelta(0))
 
     a_initPoint = a.utc_timestamp
     a_endPoint = a_initPoint + a.duration

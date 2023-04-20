@@ -13,16 +13,23 @@ class Region:
     neighbours: List['Region'] = field(default_factory=list)
 
     def is_inside(self, point: SemanticPoint) -> bool:
-        x_part = math.pow(self.center_point.latitude - point.latitude, 2)
-        y_part = math.pow(self.center_point.longitude - point.longitude, 2)
-        formula_result = math.sqrt(x_part + y_part)
-
-        if formula_result > self.area:
+        if distance(self.center_point, point) > self.area:
             return False
         return True
 
+    def is_neighbour(self, region: 'Region') -> bool:
+        if distance(self.center_point, region.center_point) < 500:
+            return True
+        return False
+
     def add_point(self, point: SemanticPoint) -> None:
         self.points.append(point)
+
+
+def distance(point_a: SemanticPoint, point_b: SemanticPoint) -> float:
+    x_part = math.pow(point_a.latitude - point_b.latitude, 2)
+    y_part = math.pow(point_a.longitude - point_b.longitude, 2)
+    return math.sqrt(x_part + y_part)
 
 
 @dataclass
@@ -30,13 +37,27 @@ class Graph:
     vertices: set[Region]
 
     def add_vertex(self, region: Region) -> None:
-        """
-        Adiciona um vértice no grafo
-        """
         self.vertices.add(region)
 
+    def remove_vertex(self, region: Region) -> None:
+        self.vertices.remove(region)
+
     def prune_and_simplify(self):
-        pass
+        vertices = {}
+        already_checked = []
+        for i, region in enumerate(self.vertices):
+            for j, other_region in enumerate(self.vertices):
+                if i == j:
+                    # região com ela mesma ignora
+                    continue
+
+                # se marcar alguma dessas condições abaixo tenque registrar a região já utilizada
+                if other_region.is_inside(region.center_point):
+                    # cria uma nova região com os dois pontos dentro
+                    pass
+                elif True:
+                    # verifica se são vizinhos e adiciona na vizinhança
+                    pass
 
     # def connect(region_a: Region, region_b: Region, weight):
     #     """
