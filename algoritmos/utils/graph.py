@@ -22,8 +22,12 @@ class Region:
             return True
         return False
 
-    def add_point(self, point: SemanticPoint) -> None:
-        self.points.append(point)
+    def add_point(self, region: 'Region') -> None:
+        self.points.append(region.center_point)
+        self.add_neighbour(region)
+
+    def add_neighbour(self, region: 'Region') -> None:
+        self.neighbours.append(region)
 
 
 def distance(point_a: SemanticPoint, point_b: SemanticPoint) -> float:
@@ -42,22 +46,32 @@ class Graph:
     def remove_vertex(self, region: Region) -> None:
         self.vertices.remove(region)
 
-    def prune_and_simplify(self):
-        vertices = {}
-        already_checked = []
+    def prune_and_simplify(self) -> 'Graph':
+        new_graph = Graph()
+        united = set()
         for i, region in enumerate(self.vertices):
-            for j, other_region in enumerate(self.vertices):
-                if i == j:
-                    # região com ela mesma ignora
+            if i in united:
+                continue
+
+            # triangulo superior
+            for j, other_region in enumerate(self.vertices[i:]):
+                if i == j or j in united:
+                    # região com ela mesma ignora ou trajetória já considerada
                     continue
 
                 # se marcar alguma dessas condições abaixo tenque registrar a região já utilizada
                 if other_region.is_inside(region.center_point):
                     # cria uma nova região com os dois pontos dentro
-                    pass
-                elif True:
-                    # verifica se são vizinhos e adiciona na vizinhança
-                    pass
+                    united.add(j)
+                    region.add_point(other_region)
+                elif region.is_neighbour(other_region):
+                    # adiciona na vizinhança
+                    region.add_neighbour(other_region)
+                    other_region.add_neighbour(region)
+
+            new_graph.add_vertex(region)
+
+        return new_graph
 
     # def connect(region_a: Region, region_b: Region, weight):
     #     """
