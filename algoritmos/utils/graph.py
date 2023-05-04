@@ -18,6 +18,7 @@ class Region:
         return True
 
     def is_neighbour(self, region: 'Region') -> bool:
+        # ver se 500 funciona como 500 metros
         if distance(self.center_point, region.center_point) < 500:
             return True
         return False
@@ -73,51 +74,44 @@ class Graph:
 
         return new_graph
 
-    # def connect(region_a: Region, region_b: Region, weight):
-    #     """
-    #     Adiciona vizinhos à um vértice
-    #     usa o peso
-    #     """
-    #     pass
-
     # def get_neighbours():
     #     """
     #     Pega os vizinhos de um vértice
     #     """
     #     pass
-    #
-    # def merge(a: Vertex, b: Vertex) -> Vertex:
-    #     pass
 
-    # def dijkstra():
-    #     """
-    #     implementar dijkstra
-    #     """
-    #     pass
 
-# def Dijkstra(graph, source):
-#     queue = set()
-#     distances = {}
-#     previous = {}
-#     for vertex in graph:
-#         distances[vertex] = float('inf')
-#         previous[vertex] = None
-#         queue.add(vertex)
-#     for venue_id in source.venue_id:
-#         distances[venue_id] = 0
+def dijkstra(graph: Graph, source: Region):
+    """
+    Calcula as distancias de todas as regiões dada uma região em específico
+    """
+    pass
+    unchecked_vertices = set()
+    distances = {}
+    previous = {}
+    # todos os nodos são marcados como não visitados e recebem o valor inf
+    for vertex in graph.vertices:
+        distances[vertex] = float('inf')
+        previous[vertex] = None
+        unchecked_vertices.add(vertex)
 
-#     while queue:
-#         u = min(queue, key=lambda k: distances[k])
-#         queue.remove(u)
+    # o nodo inicial recebe a distancia 0
+    distances[source] = 0
 
-#         for neighbor in graph[u]:
-#             venue_id, distance = neighbor
-#             alt = distances[u] + distance
-#             if alt < distances[venue_id]:
-#                 distances[venue_id] = alt
-#                 previous[venue_id] = u
+    while unchecked_vertices:
+        selected_vertex = min(unchecked_vertices, key=lambda k: distances[k])
+        unchecked_vertices.remove(selected_vertex)
 
-#     return distances,previous
+        for neighbor in selected_vertex.neighbours:
+            # create def to get distance between two regions
+            distance = 0 # todo oq foi escrito acima
+            alt_distance = distances[selected_vertex] + distance
+            if alt_distance < distances[neighbor]:
+                distances[neighbor] = alt_distance
+                previous[neighbor] = selected_vertex
+
+    return distances, previous
+
 
 # def get_connected_region(graph,source, destiny):
 #     distances,previous = Dijkstra(graph,source)
