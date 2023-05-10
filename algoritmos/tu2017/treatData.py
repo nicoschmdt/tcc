@@ -1,30 +1,24 @@
 from algoritmos.utils.semantic import SemanticTrajectory
 from ..utils.graph import Graph, Region
 
-AREA_RANGE = 100
+AREA_RANGE = 150
 
 
 def construct_graph(trajectories: list[SemanticTrajectory]) -> Graph:
     graph = Graph()
 
     for trajectory in trajectories:
-        neighbour = []
         for point in trajectory.trajectory:
-            # if previous_region is not None:
-            #     if previous_region.is_inside(point):
-            #         previous_region.add_point(point)
-
             region = Region(
                 center_point=point,
                 area=AREA_RANGE,
                 points=[point],
-                neighbours=neighbour
+                neighbours=[]
             )
 
             graph.add_vertex(region)
 
-    graph.prune_and_simplify()
-    return graph
+    return graph.prune_and_simplify()
 
 
 if __name__ == "__main__":

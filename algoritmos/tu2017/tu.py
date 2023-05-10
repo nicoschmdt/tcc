@@ -3,14 +3,15 @@ import math
 import similarity
 from geopy.distance import geodesic
 # from dataclasses import dataclass
-from datetime import timedelta, datetime
 from networkx import Graph
 from pprint import pprint
 from numpy import argmax, argmin
 from typing import List, Set
 
+from algoritmos.tu2017.cost_matrix import add_trajectory_cost, remove_from_cost_matrix
 from algoritmos.tu2017.treatData import construct_graph
-from algoritmos.utils.semantic import SemanticTrajectory
+from algoritmos.utils.graph import get_connected_region
+from algoritmos.utils.semantic import SemanticTrajectory, SemanticPoint
 from .algoritmos.trajetoria import process_trajectories, Point, Trajectory
 
 
@@ -25,29 +26,68 @@ def merging_trajectories(trajectories: list[SemanticTrajectory], merge_cost_matr
         i, j = argmin(merge_cost_matrix)
 
         # new trajectory
-        tm = merge(trajectories[i], trajectories[j])
-        nm = trajectories[i].n + trajectories[j].n
+        tm = merge(trajectories[i], trajectories[j], graph)
 
         # delete
         delete(trajectories, trajectories[i], trajectories[j])
-        delete(merge_cost_matrix, trajectories[i], trajectories[j])
+        merge_cost_matrix = remove_from_cost_matrix(merge_cost_matrix, i, j)
 
-        if nm < delta_k:
-            for tn in trajectories:
-                Cmn = calcCost(Gn, Gm)
-            add(trajectories, tm)
+        if tm.n < delta_k:
+            merge_cost_matrix = add_trajectory_cost(merge_cost_matrix, tm)
+            trajectories.append(tm)
         else:
-            add(generalized_dataset, tm)
+            generalized_dataset.append(tm)
+
+    return generalized_dataset
 
 
-def merge(pointA, pointB, delta_l, delta_t):
+def merge(trajectory: SemanticTrajectory, trajectory2: SemanticTrajectory, graph: Graph) -> SemanticTrajectory:
+    # TODO: ver como receber os parametros delta L e delta T
+    delta_l = 2
+    delta_t = 0.5
+
+    if len(trajectory.trajectory) > len(trajectory2.trajectory):
+        bigger_trajectory = trajectory
+        smaller_trajectory = trajectory2
+    else:
+        bigger_trajectory = trajectory2
+        smaller_trajectory = trajectory
+
+    # lista com tuplas sendo um ponto e a indicação de se esse ponto já foi mergeado
+    points = [(point, False) for point in smaller_trajectory.trajectory]
+
+    # junta todos os pontos da maior trajetoria na menor
+    for point in bigger_trajectory.trajectory:
+        chosen_point = get_smallest_merge_cost_partner(point, smaller_trajectory)
+        # TODO: ver algum jeito de sinalizar que o chosen point na lista de points
+        merged_point = merge_points(point, chosen_point, graph, delta_l, delta_t)
+        # TODO: atualizar o merged point na bigger trajectory e em points
+
+    # TODO: juntar os pontos não juntados da menor trajetoria nela mesma
+    merged_points = []
+    for point, merged in points:
+        if merged:
+            continue
+
+    # TODO: conferir se os tempos entre os pontos adjacentes não se sobressaem
+    return SemanticTrajectory(trajectory=merged_points,n=trajectory.n + trajectory2.n)
+
+
+def get_smallest_merge_cost_partner(point: SemanticPoint, trajectory: SemanticTrajectory) -> SemanticPoint:
+    """
+    Encontra o ponto com o menor custo de junção em outra trajetória
+    """
+    pass
+
+
+def merge_points(pointA: SemanticPoint, pointB: SemanticPoint, graph: Graph, delta_l: float, delta_t: float) -> SemanticPoint:
     """
     """
 
     tc = min(ta, tb)
     dc = max(ta + da, tb + db) - tc
 
-    lc1 = getConnectedRegion(la, lb)
+    lc1 = get_connected_region(la, lb)
 
     while lc1 < delta_l:
         x = getNeighbours(lc1)
@@ -151,44 +191,6 @@ def nearest_points(point: Point, g: Graph, n: int = 10):
     return nearest[:n]
 
 
-def build_neighbours_matrix(trajectories):
-    matrix = []
-    for trajectory in trajectories:
-        for point in trajectory.trajectory:
-            list_point = []
-            for trajectory2 in trajectories:
-                for point2 in trajectory2.trajectory:
-                    if point == point2:
-                        list_point.append(0)
-                    else:
-                        list_point.append(calculate_distance(point, point2))
-            matrix.append(list_point)
-    return matrix
-
-
-# generates a graph with distances
-def generate_distance_graph(points: List[Point]):
-    g = Graph({
-        point_a.name: {
-            point_b.name: {
-                # Ter um dicionário com esse 'weight' como chave é
-                # necessário para o networkx montar um grafo com pesos
-                'weight': calculate_distance(point_a, point_b) if point_a != point_b
-                else float('inf')
-            } for point_b in points
-        } for point_a in points
-    })
-    for point, node in zip(points, g.nodes):
-        g.nodes[node]['point'] = point
-    return g
-
-
-def calculate_distance(point_one, point_two):
-    coordinate_one = (point_one.latitude, point_one.longitude)
-    coordinate_two = (point_two.latitude, point_two.longitude)
-    return geodesic(coordinate_one, coordinate_two).miles
-
-
 # get how many diverse venue_ids we have in a point
 def get_diversity(places):
     return len(places)
@@ -238,45 +240,6 @@ def merge_trajectories(trajectories: list[Trajectory], similarity_matrix, anonym
         if len(trajectories) < 2:  # preciso pensar nessa condição aqui
             possible_to_merge = False
     return generalized_dataset
-
-
-# I plan on organizing a lil better this method
-def merge(trajectory_one, trajectory_two, trajectories):
-    bigger_traj = trajectory_two.trajectory.copy()
-    smaller_traj = trajectory_one.trajectory.copy()
-
-    if len(trajectory_two.trajectory) < len(trajectory_one.trajectory):
-        smaller_traj, bigger_traj = bigger_traj, smaller_traj
-
-    haventbeenmerged = smaller_traj.copy()
-    for point in bigger_traj:
-        # search for the cheapest merge for this point
-        cost = []
-        for point2 in smaller_traj:
-            cost.append(calculate_distance(point, point2))
-        i = argmin(cost)
-        if smaller_traj[i] in haventbeenmerged:
-            haventbeenmerged.remove(smaller_traj[i])
-        # 3,3 = respectively diversity criteria and closeness criteria
-        new_point = merge_points(point, smaller_traj[i], 3, 1, trajectories)
-
-        smaller_traj[i] = new_point
-
-    if haventbeenmerged:
-        # for point in haventbeenmerged:
-        #     if point in smaller_traj:
-        #         smaller_traj.remove(point)
-
-        for point in haventbeenmerged:
-            cost = []
-            for point2 in smaller_traj:
-                cost.append(calculate_distance(point, point2))
-            i = argmin(cost)
-            new_point = (merge_points(point, smaller_traj[i], 4, 2, trajectories))
-
-            smaller_traj[i] = new_point
-
-    return Trajectory(smaller_traj)
 
 
 def remove_from(i, j, similarity_matrix):

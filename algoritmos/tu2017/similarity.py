@@ -68,30 +68,6 @@ def semantics(a, b):
     return 0
 
 
-def create_cost_matrix(trajectories: list[SemanticTrajectory], weights: dict[str, int]):
-    """
-    Cria a matriz de custo C.
-    Como Cij == Cji a matriz é preenchida somente na parte superior
-    e a parte inferior é copiada da superior já existente
-    """
-    matrix = []
-    for i, trajectory_one in enumerate(trajectories):
-        lista = []
-
-        for j in range(i):
-            lista.append(matrix[j][i])
-
-        for j, trajectory_two in enumerate(trajectories[i:]):
-            if trajectory_one == trajectory_two:
-                lista.append(float('inf'))
-            else:
-                cost = spatio_temporal_loss(trajectory_one, trajectory_two, weights)
-                # lista.append(msm(trajectory_one,trajectory_two)) # -> fazer
-                lista.append(cost)
-        matrix.append(lista)
-    return matrix
-
-
 def spatio_temporal_loss(trajectory_a: SemanticTrajectory, trajectory_b: SemanticTrajectory, weights: dict[str, int]):
     """
     Calcula a perda espaço-temporal entre duas trajetórias
@@ -160,7 +136,8 @@ def spatial_loss(point_a: SemanticPoint, point_b: SemanticPoint, n_a: int, n_b: 
 
 if __name__ == "__main__":
     a = SemanticPoint(name='10', user_id='1', category={PoiCategory.Business}, latitude=0.0, longitude=0.0,
-                      utc_timestamp=datetime(2012, 4, 3, 18, 20, 0, tzinfo=timezone.utc), duration=timedelta(seconds=3600))
+                      utc_timestamp=datetime(2012, 4, 3, 18, 20, 0, tzinfo=timezone.utc),
+                      duration=timedelta(seconds=3600))
     b = SemanticPoint(name='12', user_id='2', category={PoiCategory.Transport}, latitude=9.0, longitude=8.0,
                       utc_timestamp=datetime(2012, 4, 3, 19, 30, tzinfo=timezone.utc), duration=timedelta(0))
 

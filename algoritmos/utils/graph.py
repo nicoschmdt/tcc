@@ -1,40 +1,6 @@
-import math
-from dataclasses import dataclass, field
-from typing import List
+from dataclasses import dataclass
 
-from algoritmos.utils.semantic import SemanticPoint
-
-
-@dataclass
-class Region:
-    center_point: SemanticPoint
-    area: int
-    points: List[SemanticPoint]
-    neighbours: List['Region'] = field(default_factory=list)
-
-    def is_inside(self, point: SemanticPoint) -> bool:
-        if distance(self.center_point, point) > self.area:
-            return False
-        return True
-
-    def is_neighbour(self, region: 'Region') -> bool:
-        # ver se 500 funciona como 500 metros
-        if distance(self.center_point, region.center_point) < 500:
-            return True
-        return False
-
-    def add_point(self, region: 'Region') -> None:
-        self.points.append(region.center_point)
-        self.add_neighbour(region)
-
-    def add_neighbour(self, region: 'Region') -> None:
-        self.neighbours.append(region)
-
-
-def distance(point_a: SemanticPoint, point_b: SemanticPoint) -> float:
-    x_part = math.pow(point_a.latitude - point_b.latitude, 2)
-    y_part = math.pow(point_a.longitude - point_b.longitude, 2)
-    return math.sqrt(x_part + y_part)
+from algoritmos.utils.region import Region
 
 
 @dataclass
@@ -74,12 +40,6 @@ class Graph:
 
         return new_graph
 
-    # def get_neighbours():
-    #     """
-    #     Pega os vizinhos de um vértice
-    #     """
-    #     pass
-
 
 def dijkstra(graph: Graph, source: Region):
     """
@@ -114,12 +74,12 @@ def dijkstra(graph: Graph, source: Region):
 
 def get_connected_region(graph: Graph, source: Region, destiny: Region):
     distances, previous = dijkstra(graph, source)
-#     path = [destiny]
-#     it = next(iter(destiny.venue_id))
-#     while destiny != source:
-#         destiny = previous[it]
-#         if destiny is None:
-#             break
-#         path.append(destiny)
-#         it = destiny
-#     return [*reversed(path + [source])]
+    path = [destiny]
+    it = destiny
+    while destiny != source:
+        destiny = previous[it]
+        if destiny is None:
+            break
+        path.append(destiny)
+        it = destiny
+    return [*reversed(path + [source])]
