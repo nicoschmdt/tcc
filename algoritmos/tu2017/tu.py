@@ -1,18 +1,13 @@
-import csv
 import math
 import similarity
-from geopy.distance import geodesic
-# from dataclasses import dataclass
-from networkx import Graph
 from pprint import pprint
 from numpy import argmax, argmin
-from typing import List, Set
 
 from algoritmos.tu2017.cost_matrix import add_trajectory_cost, remove_from_cost_matrix
 from algoritmos.tu2017.treatData import construct_graph
-from algoritmos.utils.graph import get_connected_region
+from algoritmos.utils import region
+from algoritmos.utils.graph import get_connected_region, Graph
 from algoritmos.utils.semantic import SemanticTrajectory, SemanticPoint
-from .algoritmos.trajetoria import process_trajectories, Point, Trajectory
 
 
 def merging_trajectories(trajectories: list[SemanticTrajectory], merge_cost_matrix, delta_k: int):
@@ -80,122 +75,42 @@ def get_smallest_merge_cost_partner(point: SemanticPoint, trajectory: SemanticTr
     pass
 
 
-def merge_points(pointA: SemanticPoint, pointB: SemanticPoint, graph: Graph, delta_l: float, delta_t: float) -> SemanticPoint:
+def merge_points(point_a: SemanticPoint, point_b: SemanticPoint, graph: Graph, delta_l: float, delta_t: float) -> SemanticPoint:
     """
+    Unir dois pontos espaço-temporais resulta em um novo
+    ponto com inicio e duração atualizados e que respeita
+    os critérios de l-diversidade e t-proximidade.
     """
+    tc, duration = similarity.join_spacetime(point_a, point_b)
 
-    tc = min(ta, tb)
-    dc = max(ta + da, tb + db) - tc
+    lc = get_connected_region(graph, point_a.region, point_b.region)
 
-    lc1 = get_connected_region(la, lb)
+    while lc.get_diversity() < delta_l:
+        diversities = {}
+        for neighbour in lc.neighbours:
+            diversity = region.get_possible_diversity(lc, neighbour)
+            diversities[neighbour] = diversity
 
-    while lc1 < delta_l:
-        x = getNeighbours(lc1)
-        for i in enumerate(len(x)):
-            r = {lc1, x[i]}
-            b[i] = delta_r
+        lc.join_region(argmax(diversities))
 
-        i = argmax(b)
-        lc1 = {lc1, x[i]}
+    while lc.get_closeness() < delta_t:
+        closeness_values = {}
+        for neighbour in lc.neighbours:
+            closeness = region.get_possible_closeness()
+            closeness_values[neighbour] = closeness
 
-    lc2 = lc1
+        lc.join_region(argmin(closeness_values))
 
-    while lc2 < delta_t:
-        x = getNeighbours(lc2)
-        for i in enumerate(len(x)):
-            r = {lc2, x[i]}
-            b[i] = delta_r
-        i = argmin(b)
-        lc2 = {lc2, x[i]}
-
-    lc = lc2
+    return SemanticPoint(
+        name='',
+        user_id='',
+        utc_timestamp=tc,
+        duration=duration,
+        region=lc
+    )
 
 
 ##### OLD
-
-# merging two spatiotemporal points, returns a new Point of the merged locations
-def merge_points(point_one, point_two, diversity_criteria, closeness_criteria, trajectories):
-    timestamp1 = point_one.utc_timestamp
-    timestamp2 = point_two.utc_timestamp
-    # prob gotta turn this one like the utc_timestamp format
-    timestamp = min(timestamp1, timestamp2)
-    duration = max(point_one.duration + timestamp1,
-                   point_two.duration + timestamp2)
-    # location = get_connected_region(graph,point_one,point_two)
-    duration -= timestamp
-    location = point_one.venue_id | point_two.venue_id
-    categories = point_one.venue_category_id | point_two.venue_category_id
-
-    graph = generate_distance_graph([point
-                                     for tr in trajectories
-                                     for point in tr.trajectory])
-
-    points = [point_one, point_two]
-    diversity = get_diversity(location)
-
-    while diversity < diversity_criteria:
-        x = nearest_points(point_one, graph)
-        B = []
-        for x_i, _ in x:
-            holder = location | x_i.venue_id
-            B.append(get_diversity(holder))
-        i = argmax(B)
-        x_i, _ = x[i]
-        location |= x_i.venue_id
-        categories |= x_i.venue_category_id
-        points.append(x_i)
-        diversity = get_diversity(location)
-
-    all_points = [graph.nodes[node]['point'] for node in graph.nodes] + points
-
-    # arrumar
-    closeness = get_closeness(points, all_points)
-    tries = 0
-    while closeness > closeness_criteria and tries < 100:
-        x = nearest_points(point_one, graph)
-        B = []
-        for x_i, _ in x:
-            holder_point = points + [x_i]
-            B.append(get_closeness(holder_point, all_points))
-        i = argmin(B)
-        x_i, _ = x[i]
-        location |= x_i.venue_id
-        categories |= x_i.venue_category_id
-        points.append(x_i)
-        closeness = get_closeness(points, all_points)
-        tries += 1
-
-    # create new point
-    new_point = Point(
-        name=point_one.name,
-        user_id='',
-        venue_id=location,
-        venue_category_id=categories,
-        latitude=point_one.latitude,  # ver com a fernanda como fazer em relação a latitude
-        longitude=point_one.longitude,  # e longitude dos pontos mergeados
-        timezone_offset=point_one.timezone_offset,
-        utc_timestamp=timestamp,
-        duration=duration)
-
-    return new_point
-
-
-def nearest_points(point: Point, g: Graph, n: int = 10):
-    point_a = point.name
-
-    nearest = sorted(
-        [
-            (g.nodes[point_b]['point'], g.edges[point_a, point_b]['weight'])
-            for point_b in g.nodes
-        ], key=lambda k: k[1])
-    return nearest[:n]
-
-
-# get how many diverse venue_ids we have in a point
-def get_diversity(places):
-    return len(places)
-
-
 def poi_distribution(points):
     m = {}
     for point in points:
@@ -264,7 +179,8 @@ def add_similarity(matrix, trajectories, trajectory1):
 
 
 def main(name, anonymity_criteria):
-    trajectories = process_trajectories(name)
+    pass
+    # trajectories = process_trajectories(name)
     # similarity_matrix = create_similarity_matrix(trajectories)
     # anonymized = merge_trajectories(trajectories,similarity_matrix,anonymity_criteria)
 

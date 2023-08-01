@@ -10,11 +10,13 @@ def construct_graph(trajectories: list[SemanticTrajectory]) -> Graph:
     for trajectory in trajectories:
         for point in trajectory.trajectory:
             region = Region(
-                center_point=point,
+                center_point=(point.latitude, point.longitude),
                 area=AREA_RANGE,
                 points=[point],
+                categories={point.category: 1},
                 neighbours=[]
             )
+            point.region = region
 
             graph.add_vertex(region)
 

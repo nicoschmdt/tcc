@@ -3,6 +3,7 @@ from enum import Enum, auto
 from typing import List
 from datetime import timedelta, datetime
 
+from algoritmos.utils.region import Region
 from algoritmos.utils.trajetoria import Trajectory, Point
 
 
@@ -22,11 +23,12 @@ class PoiCategory(Enum):
 class SemanticPoint:
     name: str
     user_id: str
-    category: set[PoiCategory]
+    category: PoiCategory
     latitude: float
     longitude: float
     utc_timestamp: datetime
     duration: timedelta
+    region: Region
 
 
 @dataclass

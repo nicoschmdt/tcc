@@ -1,32 +1,71 @@
 import math
 from dataclasses import dataclass, field
-from typing import List
 
-from algoritmos.utils.semantic import SemanticPoint
+from algoritmos.utils.semantic import SemanticPoint, PoiCategory
 
 
 @dataclass
 class Region:
-    center_point: SemanticPoint
+    center_point: tuple[float, float]
     area: int
-    points: List[SemanticPoint]
-    neighbours: List['Region'] = field(default_factory=list)
+    points: list[SemanticPoint]
+    categories: dict[PoiCategory, int] = field(default_factory=list)
+    neighbours: list['Region'] = field(default_factory=list)
 
-    def is_inside(self, point: SemanticPoint) -> bool:
-        return distance(self.center_point, point) <= self.area
+    def is_inside(self, region: 'Region') -> bool:
+        return distance(self, region) <= self.area
 
     def is_neighbour(self, region: 'Region') -> bool:
-        return self.area * 2 >= distance(self.center_point, region.center_point) > self.area
+        return self.area * 2 >= distance(self, region) > self.area
 
     def add_point(self, region: 'Region') -> None:
-        self.points.append(region.center_point)
         self.add_neighbour(region)
+
+    def join_region(self, region: 'Region') -> None:
+        if self.is_neighbour(region):
+            self.neighbours.remove(region)
+
+        for category in self.categories:
+            self.categories[category] += region.categories[category]
+
+        for point in region.points:
+            point.region = self
+            self.points.append(point)
 
     def add_neighbour(self, region: 'Region') -> None:
         self.neighbours.append(region)
 
+    def get_diversity(self) -> int:
+        """
+        Quantidade de categorias que a região possui.
+        """
+        diversity = 0
+        for category in self.categories.keys():
+            if self.categories[category] != 0:
+                diversity += 1
 
-def distance(point_a: SemanticPoint, point_b: SemanticPoint) -> float:
-    x_part = math.pow(point_a.latitude - point_b.latitude, 2)
-    y_part = math.pow(point_a.longitude - point_b.longitude, 2)
+        return diversity
+
+    def get_closeness(self):
+        return 0
+
+
+def get_possible_diversity(region_a: Region, region_b: Region) -> int:
+    diversity = 0
+    for category in region_a.categories.keys():
+        if region_a.categories[category] != 0 or region_b.categories[category] != 0:
+            diversity += 1
+
+    return diversity
+
+
+def get_possible_closeness() -> float:
+    return 0.0
+
+
+def distance(region_a: Region, region_b: Region) -> float:
+    x_a, y_a = region_a.center_point
+    x_b, y_b = region_b.center_point
+    x_part = math.pow(x_a - x_b, 2)
+    y_part = math.pow(y_a - y_b, 2)
     return math.sqrt(x_part + y_part)

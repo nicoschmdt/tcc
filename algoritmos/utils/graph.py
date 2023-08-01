@@ -30,7 +30,7 @@ class Graph:
                 if other_region.is_inside(region.center_point):
                     # cria uma nova região com os dois pontos dentro
                     united.add(j)
-                    region.add_point(other_region)
+                    region.join_region(other_region)
                 elif region.is_neighbour(other_region):
                     # adiciona na vizinhança
                     region.add_neighbour(other_region)
@@ -72,7 +72,7 @@ def dijkstra(graph: Graph, source: Region):
     return distances, previous
 
 
-def get_connected_region(graph: Graph, source: Region, destiny: Region):
+def get_connected_region(graph: Graph, source: Region, destiny: Region) -> Region:
     distances, previous = dijkstra(graph, source)
     path = [destiny]
     it = destiny
@@ -82,4 +82,14 @@ def get_connected_region(graph: Graph, source: Region, destiny: Region):
             break
         path.append(destiny)
         it = destiny
-    return [*reversed(path + [source])]
+    result = Region(
+        center_point=source.center_point,
+        area=source.area,
+        points=source.points,
+        categories=source.categories,
+        neighbours=source.neighbours
+    )
+    for region in path:
+        result.join_region(region)
+
+    return result
