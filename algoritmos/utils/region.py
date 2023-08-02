@@ -46,8 +46,23 @@ class Region:
 
         return diversity
 
-    def get_closeness(self):
-        return 0
+    def get_closeness(self, general_poi_distribution: dict[PoiCategory, float]) -> float:
+        """
+        Calcula a diferença entre a distribuição de PoIs dessa região
+        comparada a todas as outras.
+        """
+
+        x = self.poi_distribution()
+        y = general_poi_distribution
+        return sum(x[category] * math.log(x[category] / y[category]) for category in x)
+
+    def poi_distribution(self) -> dict[PoiCategory, float]:
+        """
+        Distribuição de PoI na região.
+        """
+
+        poi_sum = sum(category for category in self.categories.values())
+        return {category: self.categories[category] / poi_sum for category in self.categories}
 
 
 def get_possible_diversity(region_a: Region, region_b: Region) -> int:
@@ -59,8 +74,16 @@ def get_possible_diversity(region_a: Region, region_b: Region) -> int:
     return diversity
 
 
-def get_possible_closeness() -> float:
-    return 0.0
+def get_possible_closeness(region_a: Region, region_b: Region, general_distribution: dict[PoiCategory, float]) -> float:
+    categories = {}
+    poi_sum = 0
+    for category in region_a.categories.keys():
+        categories[category] = region_a.categories[category] + region_b.categories[category]
+        poi_sum += categories[category]
+
+    new_dist = {category: categories[category] / poi_sum for category in categories}
+
+    return sum(new_dist[category] * math.log(new_dist[category] / general_distribution[category]) for category in new_dist)
 
 
 def distance(region_a: Region, region_b: Region) -> float:

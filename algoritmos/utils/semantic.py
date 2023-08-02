@@ -7,8 +7,6 @@ from algoritmos.utils.region import Region
 from algoritmos.utils.trajetoria import Trajectory, Point
 
 
-# t-closeness: distribuição igual de PoI
-# l-diversity: every point has at least l categories
 class PoiCategory(Enum):
     Entertainment = auto()
     Education = auto()

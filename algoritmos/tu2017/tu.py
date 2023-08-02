@@ -1,4 +1,3 @@
-import math
 import similarity
 from pprint import pprint
 from numpy import argmax, argmin
@@ -65,7 +64,7 @@ def merge(trajectory: SemanticTrajectory, trajectory2: SemanticTrajectory, graph
             continue
 
     # TODO: conferir se os tempos entre os pontos adjacentes não se sobressaem
-    return SemanticTrajectory(trajectory=merged_points,n=trajectory.n + trajectory2.n)
+    return SemanticTrajectory(trajectory=merged_points, n=trajectory.n + trajectory2.n)
 
 
 def get_smallest_merge_cost_partner(point: SemanticPoint, trajectory: SemanticTrajectory) -> SemanticPoint:
@@ -75,7 +74,8 @@ def get_smallest_merge_cost_partner(point: SemanticPoint, trajectory: SemanticTr
     pass
 
 
-def merge_points(point_a: SemanticPoint, point_b: SemanticPoint, graph: Graph, delta_l: float, delta_t: float) -> SemanticPoint:
+def merge_points(point_a: SemanticPoint, point_b: SemanticPoint, graph: Graph, delta_l: float,
+                 delta_t: float) -> SemanticPoint:
     """
     Unir dois pontos espaço-temporais resulta em um novo
     ponto com inicio e duração atualizados e que respeita
@@ -93,10 +93,10 @@ def merge_points(point_a: SemanticPoint, point_b: SemanticPoint, graph: Graph, d
 
         lc.join_region(argmax(diversities))
 
-    while lc.get_closeness() < delta_t:
+    while lc.get_closeness(graph.poi_distribution) < delta_t:
         closeness_values = {}
         for neighbour in lc.neighbours:
-            closeness = region.get_possible_closeness()
+            closeness = region.get_possible_closeness(lc, neighbour, graph.poi_distribution)
             closeness_values[neighbour] = closeness
 
         lc.join_region(argmin(closeness_values))
@@ -111,25 +111,6 @@ def merge_points(point_a: SemanticPoint, point_b: SemanticPoint, graph: Graph, d
 
 
 ##### OLD
-def poi_distribution(points):
-    m = {}
-    for point in points:
-        for category in point.venue_category_id:
-            try:
-                m[category] += 1
-            except KeyError:
-                m[category] = 1
-    m_sum = sum(v for v in m.values())
-    return {u: m[u] / m_sum for u in m}
-
-
-# get how many diverse category_ids we have in a point
-def get_closeness(r, R):
-    x = poi_distribution(r)
-    y = poi_distribution(R)
-    return sum(x[u] * math.log(x[u] / y[u]) for u in x)
-
-
 # merging trajectories // acho que vou precisar passar o graph tb..
 # The algorithm will iterate until all the trajectories in T have been k-anonymized.
 def merge_trajectories(trajectories: list[Trajectory], similarity_matrix, anonymity_criteria: int):
@@ -155,27 +136,6 @@ def merge_trajectories(trajectories: list[Trajectory], similarity_matrix, anonym
         if len(trajectories) < 2:  # preciso pensar nessa condição aqui
             possible_to_merge = False
     return generalized_dataset
-
-
-def remove_from(i, j, similarity_matrix):
-    similarity_matrix.pop(i)
-    similarity_matrix.pop(j - 1)
-    for line in similarity_matrix:
-        line.pop(i)
-        line.pop(j - 1)
-
-
-# calcular o custo dessa nova trajetoria com as já existentes e adicionar na sm
-def add_similarity(matrix, trajectories, trajectory1):
-    cost = []
-    for trajectory in trajectories:
-        cost.append(similarity.msm(trajectory, trajectory1))
-    cost.append('-inf')
-    i = 0
-    for line in matrix:
-        line.append(cost[i])
-        i += 1
-    matrix.append(cost)
 
 
 def main(name, anonymity_criteria):

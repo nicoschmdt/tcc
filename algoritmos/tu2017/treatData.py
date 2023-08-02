@@ -1,4 +1,4 @@
-from algoritmos.utils.semantic import SemanticTrajectory
+from algoritmos.utils.semantic import SemanticTrajectory, PoiCategory
 from ..utils.graph import Graph, Region
 
 AREA_RANGE = 150
@@ -6,6 +6,8 @@ AREA_RANGE = 150
 
 def construct_graph(trajectories: list[SemanticTrajectory]) -> Graph:
     graph = Graph()
+    categories = {}
+    poi_sum = 0
 
     for trajectory in trajectories:
         for point in trajectory.trajectory:
@@ -17,9 +19,15 @@ def construct_graph(trajectories: list[SemanticTrajectory]) -> Graph:
                 neighbours=[]
             )
             point.region = region
-
             graph.add_vertex(region)
 
+            poi_sum += 1
+            try:
+                categories[point.category] += 1
+            except KeyError:
+                categories[point.category] = 1
+
+    graph.poi_distribution = {category: categories[category] / poi_sum for category in categories}
     return graph.prune_and_simplify()
 
 

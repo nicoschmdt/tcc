@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 
 from algoritmos.utils.region import Region
+from algoritmos.utils.semantic import PoiCategory
 
 
 @dataclass
 class Graph:
     vertices: set[Region]
+    poi_distribution: dict[PoiCategory, float]
 
     def add_vertex(self, region: Region) -> None:
         self.vertices.add(region)
@@ -27,7 +29,7 @@ class Graph:
                     continue
 
                 # se marcar alguma dessas condições abaixo tenque registrar a região já utilizada
-                if other_region.is_inside(region.center_point):
+                if other_region.is_inside(region):
                     # cria uma nova região com os dois pontos dentro
                     united.add(j)
                     region.join_region(other_region)
@@ -82,6 +84,7 @@ def get_connected_region(graph: Graph, source: Region, destiny: Region) -> Regio
             break
         path.append(destiny)
         it = destiny
+    # TODO: revisar como funciona a região resultante
     result = Region(
         center_point=source.center_point,
         area=source.area,
