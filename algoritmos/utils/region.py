@@ -25,6 +25,8 @@ class Region:
         if self.is_neighbour(region):
             self.neighbours.remove(region)
 
+        self.area += region.area
+
         for category in self.categories:
             self.categories[category] += region.categories[category]
 
