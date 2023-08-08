@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import List
 from datetime import timedelta, datetime
 
 from algoritmos.utils.region import Region
@@ -31,8 +30,14 @@ class SemanticPoint:
 
 @dataclass
 class SemanticTrajectory:
-    trajectory: List[SemanticPoint]
+    trajectory: list[SemanticPoint]
     n: int = 1
+
+    def reshape(self) -> None:
+        """
+        Confere se os pontos semânticos não se sobresaem temporalmente.
+        """
+        pass
 
 
 def get_venue_category(trajectories: list[Trajectory]) -> list[SemanticTrajectory]:
