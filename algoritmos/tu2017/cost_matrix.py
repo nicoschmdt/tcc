@@ -1,10 +1,10 @@
 from datetime import timedelta, datetime, timezone
 
-from algoritmos.utils.semantic import SemanticTrajectory, SemanticPoint, PoiCategory
+from algoritmos.tu2017.treat_data import TuPoint, TuTrajectory
+from algoritmos.utils.semantic import PoiCategory
 
 
-def create_cost_matrix(trajectories: list[SemanticTrajectory]) -> dict[
-    SemanticTrajectory, list[tuple[float, SemanticTrajectory]]]:
+def create_cost_matrix(trajectories: list[TuTrajectory]) -> dict[TuTrajectory, list[tuple[float, TuTrajectory]]]:
     """
     Cria a matriz de custo C.
     Como Cij == Cji a matriz é preenchida somente na parte superior
@@ -29,9 +29,8 @@ def create_cost_matrix(trajectories: list[SemanticTrajectory]) -> dict[
     return matrix
 
 
-def add_trajectory_cost(matrix: dict[SemanticTrajectory, list[tuple[float, SemanticTrajectory]]],
-                        trajectory: SemanticTrajectory) -> dict[
-    SemanticTrajectory, list[tuple[float, SemanticTrajectory]]]:
+def add_trajectory_cost(matrix: dict[TuTrajectory, list[tuple[float, TuTrajectory]]],
+                        trajectory: TuTrajectory) -> dict[TuTrajectory, list[tuple[float, TuTrajectory]]]:
     """
     Adiciona uma trajetória a uma matriz de custo e calcula o custo de junção
     dessa trajetória com todas as outras presentes na matriz
@@ -47,9 +46,8 @@ def add_trajectory_cost(matrix: dict[SemanticTrajectory, list[tuple[float, Seman
     return matrix
 
 
-def remove_from_cost_matrix(matrix: dict[SemanticTrajectory, list[tuple[float, SemanticTrajectory]]],
-                            trajectory: SemanticTrajectory) -> dict[
-    SemanticTrajectory, list[tuple[float, SemanticTrajectory]]]:
+def remove_from_cost_matrix(matrix: dict[TuTrajectory, list[tuple[float, TuTrajectory]]],
+                            trajectory: TuTrajectory) -> dict[TuTrajectory, list[tuple[float, TuTrajectory]]]:
     """
     Remove da matriz de custo a trajetória recebida por parametro.
     """
@@ -63,7 +61,7 @@ def remove_from_cost_matrix(matrix: dict[SemanticTrajectory, list[tuple[float, S
     return matrix
 
 
-def get_loss(trajectory_a: SemanticTrajectory, trajectory_b: SemanticTrajectory) -> float:
+def get_loss(trajectory_a: TuTrajectory, trajectory_b: TuTrajectory) -> float:
     #  Si > Sj
     if len(trajectory_a.trajectory) > len(trajectory_b.trajectory):
         return spatio_temporal_loss(trajectory_a, trajectory_b)
@@ -71,7 +69,7 @@ def get_loss(trajectory_a: SemanticTrajectory, trajectory_b: SemanticTrajectory)
     return spatio_temporal_loss(trajectory_b, trajectory_a)
 
 
-def spatio_temporal_loss(bigger_trajectory: SemanticTrajectory, smaller_trajectory: SemanticTrajectory) -> float:
+def spatio_temporal_loss(bigger_trajectory: TuTrajectory, smaller_trajectory: TuTrajectory) -> float:
     """
     Calcula a perda espaço-temporal entre duas trajetórias.
     Assume que a trajetória com mais pontos é o primeiro
@@ -88,7 +86,7 @@ def spatio_temporal_loss(bigger_trajectory: SemanticTrajectory, smaller_trajecto
     return cost / len(bigger_trajectory.trajectory)
 
 
-def point_loss(point_a: SemanticPoint, point_b: SemanticPoint, n_a: int, n_b: int) -> float:
+def point_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int) -> float:
     """
     Args: n_a e n_b são a quantidade de trajetórias presentes na trajetória recebida anteriormente, é o parametro n
     Calcula a perda espaço-temporal da junção de dois pontos
@@ -102,7 +100,7 @@ def point_loss(point_a: SemanticPoint, point_b: SemanticPoint, n_a: int, n_b: in
     return wt * t_loss + wl * s_loss
 
 
-def join_spacetime(point_a: SemanticPoint, point_b: SemanticPoint) -> (datetime, timedelta):
+def join_spacetime(point_a: TuPoint, point_b: TuPoint) -> (datetime, timedelta):
     """
     Calcula o novo tempo de inicio e de duração entre dois datetimes.
     """
@@ -124,7 +122,7 @@ def join_spacetime(point_a: SemanticPoint, point_b: SemanticPoint) -> (datetime,
     return init, duration
 
 
-def temporal_loss(point_a: SemanticPoint, point_b: SemanticPoint, n_a: int, n_b: int) -> float:
+def temporal_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int) -> float:
     """
     Calcula a perda temporal da junção de dois pontos
     0Tm = 8 horas
@@ -138,7 +136,7 @@ def temporal_loss(point_a: SemanticPoint, point_b: SemanticPoint, n_a: int, n_b:
     return min(theta / temporal_threshold, 1)
 
 
-def spatial_loss(point_a: SemanticPoint, point_b: SemanticPoint, n_a: int, n_b: int) -> float:
+def spatial_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int) -> float:
     """
     Calcula a perda espacial da junção de dois pontos
     0Lm = 25km²
@@ -154,11 +152,11 @@ def spatial_loss(point_a: SemanticPoint, point_b: SemanticPoint, n_a: int, n_b: 
 
 
 if __name__ == "__main__":
-    a = SemanticPoint(name='10', user_id='1', category={PoiCategory.Business}, latitude=0.0, longitude=0.0,
-                      utc_timestamp=datetime(2012, 4, 3, 18, 20, 0, tzinfo=timezone.utc),
-                      duration=timedelta(seconds=3600))
-    b = SemanticPoint(name='12', user_id='2', category={PoiCategory.Transport}, latitude=9.0, longitude=8.0,
-                      utc_timestamp=datetime(2012, 4, 3, 19, 30, tzinfo=timezone.utc), duration=timedelta(0))
+    a = TuPoint(category={PoiCategory.Business}, latitude=0.0, longitude=0.0,
+                utc_timestamp=datetime(2012, 4, 3, 18, 20, 0, tzinfo=timezone.utc),
+                duration=timedelta(seconds=3600))
+    b = TuPoint(category={PoiCategory.Transport}, latitude=9.0, longitude=8.0,
+                utc_timestamp=datetime(2012, 4, 3, 19, 30, tzinfo=timezone.utc), duration=timedelta(0))
 
     a_initPoint = a.utc_timestamp
     print(f'{a_initPoint=}')
