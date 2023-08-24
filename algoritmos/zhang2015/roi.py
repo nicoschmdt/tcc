@@ -5,7 +5,7 @@ from algoritmos.zhang2015.poi import PoI
 
 
 @dataclass
-class Cluster:
+class RoI:
     core: PoI
     points: list[PoI]
 
@@ -15,7 +15,7 @@ class Cluster:
 
 @dataclass
 class Clusters:
-    clusters: list[Cluster]
+    clusters: list[RoI]
 
     def add_to_nearest_cluster(self, point: PoI) -> None:
         pass
@@ -51,10 +51,10 @@ def cluster_poi(points: set[PoI], spatial_radius: float, temporal_radius, densit
 
 
 # Algorithm 3, Pag 5
-def expand_cluster(point: PoI, neighbours: list[PoI], clusters: list[Cluster], spatial_radius: float, temporal_radius, density_threshold, unvisited):
-    cluster = Cluster(
+def expand_cluster(point: PoI, neighbours: list[PoI], clusters: list[RoI], spatial_radius: float, temporal_radius, density_threshold, unvisited):
+    roi = RoI(
         core=point,
-        points=[]
+        points=[point]
     )
 
     for neighbour in neighbours:
@@ -66,9 +66,9 @@ def expand_cluster(point: PoI, neighbours: list[PoI], clusters: list[Cluster], s
 
         for created_clusters in clusters:
             if not created_clusters.belongs(neighbour):
-                cluster.points.append(neighbour)
+                roi.points.append(neighbour)
 
-    return unvisited, cluster
+    return unvisited, roi
 
 
 # A call of Retrieve_Neighbors(object, Eps1, Eps2) returns the objects that have a distance less
