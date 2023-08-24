@@ -1,53 +1,55 @@
 from datetime import timedelta, datetime, timezone
 
+from algoritmos.tu2017.treat_data import construct_region
 from algoritmos.utils.region import Region
 from algoritmos.utils.semantic import SemanticPoint, PoiCategory
 
-AREA = 150
-
-
-def construct_region(point: SemanticPoint) -> Region:
-    return Region(
-        center_point=point,
-        area=AREA,
-        points=[point],
-        neighbours=[]
-    )
-
 
 def test_is_inside():
-    point = SemanticPoint(name='12', user_id='1', category={PoiCategory.Transport}, latitude=9.0, longitude=8.0,
-                          utc_timestamp=datetime(2012, 4, 3, 20, 21, tzinfo=timezone.utc), duration=timedelta(0))
+    region_one = Region(center_point=(175.0, 85.0),
+                        area=150,
+                        categories={PoiCategory.Transport: 1},
+                        neighbours=[])
+    region_two = Region(center_point=(10.0, 5.0),
+                        area=150,
+                        categories={PoiCategory.Business: 1},
+                        neighbours=[])
 
-    region = construct_region(point)
+    assert region_one.is_inside(region_two) is False
 
-    point2 = SemanticPoint(name='12', user_id='1', category={PoiCategory.Transport}, latitude=50.0, longitude=78.0,
-                           utc_timestamp=datetime(2012, 4, 3, 20, 21, tzinfo=timezone.utc), duration=timedelta(0))
-    point3 = SemanticPoint(name='12', user_id='1', category={PoiCategory.Transport}, latitude=100.0, longitude=250.0,
-                           utc_timestamp=datetime(2012, 4, 3, 20, 21, tzinfo=timezone.utc), duration=timedelta(0))
+    region_three = Region(center_point=(75.0, 85.0),
+                          area=150,
+                          categories={PoiCategory.Transport: 1},
+                          neighbours=[])
 
-    assert region.is_inside(point2)
-    assert not region.is_inside(point3)
+    assert region_two.is_inside(region_three)
 
 
 def test_is_neighbour():
-    point = SemanticPoint(name='12', user_id='1', category={PoiCategory.Transport}, latitude=9.0, longitude=8.0,
-                          utc_timestamp=datetime(2012, 4, 3, 20, 21, tzinfo=timezone.utc), duration=timedelta(0))
+    region_one = Region(center_point=(175.0, 85.0),
+                        area=150,
+                        categories={PoiCategory.Transport: 1},
+                        neighbours=[])
+    region_two = Region(center_point=(10.0, 5.0),
+                        area=150,
+                        categories={PoiCategory.Business: 1},
+                        neighbours=[])
+    region_three = Region(center_point=(75.0, 85.0),
+                          area=150,
+                          categories={PoiCategory.Transport: 1},
+                          neighbours=[])
 
-    region = construct_region(point)
+    region_four = Region(center_point=(360.0, 134.0),
+                         area=150,
+                         categories={PoiCategory.Business: 1},
+                         neighbours=[])
 
-    point2 = SemanticPoint(name='12', user_id='1', category={PoiCategory.Transport}, latitude=50.0, longitude=78.0,
-                           utc_timestamp=datetime(2012, 4, 3, 20, 21, tzinfo=timezone.utc), duration=timedelta(0))
-    point3 = SemanticPoint(name='12', user_id='1', category={PoiCategory.Transport}, latitude=100.0, longitude=250.0,
-                           utc_timestamp=datetime(2012, 4, 3, 20, 21, tzinfo=timezone.utc), duration=timedelta(0))
-
-    region2 = construct_region(point2)
-    region3 = construct_region(point3)
-    assert not region.is_neighbour(region2)
-    assert region.is_neighbour(region3)
+    assert region_two.is_neighbour(region_one)
+    assert region_two.is_neighbour(region_three) is False
+    assert region_two.is_neighbour(region_four) is False
 
 
-def test_add_point():
+def test_join_region():
     pass
 
 
@@ -55,5 +57,21 @@ def test_add_neighbour():
     pass
 
 
-def test_distance():
+def test_get_diversity():
+    pass
+
+
+def test_get_closeness():
+    pass
+
+
+def test_poi_distribution():
+    pass
+
+
+def test_get_possible_diversity():
+    pass
+
+
+def test_get_possible_closeness():
     pass

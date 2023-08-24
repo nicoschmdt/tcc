@@ -1,4 +1,4 @@
-from algoritmos.utils.trajetoria import create_raw_trajectories, create_point, Trajectory, Point, split_trajectories, \
+from algoritmos.utils.trajetory import create_raw_trajectories, create_point, Trajectory, Point, split_trajectories, \
     add_duration
 from datetime import timedelta, datetime, timezone
 
@@ -21,7 +21,7 @@ def test_create_raw_trajectories():
     dataset_name = 'tests/resources/datasetTest.csv'
 
     expected_trajectories = {
-        '1': Trajectory(trajectory=[
+        '1': Trajectory(points=[
             Point(name='10', user_id='1', venue_id={'10'}, venue_category_id={'10'}, venue_category='Store',
                   latitude=0.0, longitude=0.0, utc_timestamp=datetime(2012, 4, 3, 18, 17, 18, tzinfo=timezone.utc),
                   duration=timedelta(0)),
@@ -41,7 +41,7 @@ def test_create_raw_trajectories():
 
 def test_split_trajectory():
     trajectories = {
-        '1': Trajectory(trajectory=[
+        '1': Trajectory(points=[
             Point(name='10', user_id='1', venue_id={'10'}, venue_category_id={'10'}, venue_category='Store',
                   latitude=0.0, longitude=0.0, utc_timestamp=datetime(2012, 4, 3, 18, 17, 18, tzinfo=timezone.utc),
                   duration=timedelta(0)),
@@ -55,7 +55,7 @@ def test_split_trajectory():
     }
 
     expected_trajectories = [
-        Trajectory(trajectory=[
+        Trajectory(points=[
             Point(name='10', user_id='1', venue_id={'10'}, venue_category_id={'10'}, venue_category='Store',
                   latitude=0.0, longitude=0.0, utc_timestamp=datetime(2012, 4, 3, 18, 17, 18, tzinfo=timezone.utc),
                   duration=timedelta(0)),
@@ -63,7 +63,7 @@ def test_split_trajectory():
                   latitude=10.0, longitude=5.0, utc_timestamp=datetime(2012, 4, 3, 19, 20, 9, tzinfo=timezone.utc),
                   duration=timedelta(0)),
         ]),
-        Trajectory(trajectory=[
+        Trajectory(points=[
             Point(name='12', user_id='1', venue_id={'12'}, venue_category_id={'12'}, venue_category='Station',
                   latitude=9.0, longitude=8.0, utc_timestamp=datetime(2012, 4, 4, 20, 21, tzinfo=timezone.utc),
                   duration=timedelta(0))
@@ -77,7 +77,7 @@ def test_split_trajectory():
 
 def test_add_duration():
     trajectories = [
-        Trajectory(trajectory=[
+        Trajectory(points=[
             Point(name='10', user_id='1', venue_id={'10'}, venue_category_id={'10'}, venue_category='Store',
                   latitude=0.0, longitude=0.0, utc_timestamp=datetime(2012, 4, 3, 18, 20, 0, tzinfo=timezone.utc),
                   duration=timedelta(0)),
@@ -91,7 +91,7 @@ def test_add_duration():
     ]
 
     expected_result = [
-        Trajectory(trajectory=[
+        Trajectory(points=[
             Point(name='10', user_id='1', venue_id={'10'}, venue_category_id={'10'}, venue_category='Store',
                   latitude=0.0, longitude=0.0, utc_timestamp=datetime(2012, 4, 3, 18, 20, 0, tzinfo=timezone.utc),
                   duration=timedelta(seconds=3600)),
