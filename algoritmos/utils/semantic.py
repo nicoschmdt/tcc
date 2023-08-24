@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum, auto
 from datetime import timedelta, datetime
-
-from algoritmos.utils.region import Region
-from algoritmos.utils.trajetoria import Trajectory, Point
+from algoritmos.utils.trajetory import Trajectory, Point
 
 
 class PoiCategory(Enum):
@@ -18,14 +16,11 @@ class PoiCategory(Enum):
 
 @dataclass
 class SemanticPoint:
-    name: str
-    user_id: str
     category: PoiCategory
     latitude: float
     longitude: float
     utc_timestamp: datetime
     duration: timedelta
-    region: Region
 
 
 @dataclass
@@ -33,19 +28,13 @@ class SemanticTrajectory:
     trajectory: list[SemanticPoint]
     n: int = 1
 
-    def reshape(self) -> None:
-        """
-        Confere se os pontos semânticos não se sobresaem temporalmente.
-        """
-        pass
-
 
 def get_venue_category(trajectories: list[Trajectory]) -> list[SemanticTrajectory]:
     altered_trajectories = []
 
     for trajectory in trajectories:
         tu_trajectory = SemanticTrajectory([])
-        for point in trajectory.trajectory:
+        for point in trajectory.points:
             tu_point = modify_point(point)
             tu_trajectory.trajectory.append(tu_point)
 
@@ -56,9 +45,7 @@ def get_venue_category(trajectories: list[Trajectory]) -> list[SemanticTrajector
 
 def modify_point(point: Point) -> SemanticPoint:
     return SemanticPoint(
-        point.name,
-        point.user_id,
-        {generalize_venue_category(point.venue_category)},
+        generalize_venue_category(point.venue_category),
         point.latitude,
         point.longitude,
         point.utc_timestamp,

@@ -1,25 +1,22 @@
 import math
 from dataclasses import dataclass, field
 
-from algoritmos.utils.semantic import SemanticPoint, PoiCategory
+from algoritmos.utils.math_utils import distance
+from algoritmos.utils.semantic import PoiCategory
 
 
 @dataclass
 class Region:
     center_point: tuple[float, float]
     area: int
-    points: list[SemanticPoint]
     categories: dict[PoiCategory, int] = field(default_factory=list)
     neighbours: list['Region'] = field(default_factory=list)
 
     def is_inside(self, region: 'Region') -> bool:
-        return distance(self, region) <= self.area
+        return distance(self.center_point, region.center_point) <= self.area
 
     def is_neighbour(self, region: 'Region') -> bool:
-        return self.area * 2 >= distance(self, region) > self.area
-
-    def add_point(self, region: 'Region') -> None:
-        self.add_neighbour(region)
+        return self.area * 2 >= distance(self.center_point, region.center_point) > self.area
 
     def join_region(self, region: 'Region') -> None:
         if self.is_neighbour(region):
@@ -30,12 +27,9 @@ class Region:
         for category in self.categories:
             self.categories[category] += region.categories[category]
 
-        for point in region.points:
-            point.region = self
-            self.points.append(point)
-
     def add_neighbour(self, region: 'Region') -> None:
         self.neighbours.append(region)
+        region.neighbours.append(self)
 
     def get_diversity(self) -> int:
         """
@@ -86,11 +80,3 @@ def get_possible_closeness(region_a: Region, region_b: Region, general_distribut
     new_dist = {category: categories[category] / poi_sum for category in categories}
 
     return sum(new_dist[category] * math.log(new_dist[category] / general_distribution[category]) for category in new_dist)
-
-
-def distance(region_a: Region, region_b: Region) -> float:
-    x_a, y_a = region_a.center_point
-    x_b, y_b = region_b.center_point
-    x_part = math.pow(x_a - x_b, 2)
-    y_part = math.pow(y_a - y_b, 2)
-    return math.sqrt(x_part + y_part)

@@ -13,14 +13,16 @@ class Point:
     venue_category: str
     latitude: float
     longitude: float
-    # timezone_offset: int
     utc_timestamp: datetime
     duration: timedelta
+
+    def get_coordinates(self) -> tuple[float, float]:
+        return self.latitude, self.longitude
 
 
 @dataclass
 class Trajectory:
-    trajectory: list[Point]
+    points: list[Point]
 
 
 def create_raw_trajectories(name: str) -> dict[str, Trajectory]:
@@ -33,7 +35,7 @@ def create_raw_trajectories(name: str) -> dict[str, Trajectory]:
             if user_id not in trajectories:
                 trajectories[user_id] = Trajectory([])
             point_created = create_point(row)
-            trajectories[user_id].trajectory.append(point_created)
+            trajectories[user_id].points.append(point_created)
             # if i == 1000000:
             # break
     return trajectories
@@ -61,12 +63,12 @@ def split_trajectories(trajectories: dict[str, Trajectory], min_traj_amount: int
     """
     splitted_trajectories = []
     for user_id in trajectories:
-        trajectory = trajectories[user_id].trajectory
+        trajectory = trajectories[user_id].points
         compare = trajectory[0]
         lista = Trajectory([compare])
         for point in trajectory[1:]:
             if compare.utc_timestamp.day == point.utc_timestamp.day:
-                lista.trajectory.append(point)
+                lista.points.append(point)
             else:
                 splitted_trajectories.append(lista)
                 lista = Trajectory([point])
@@ -75,7 +77,7 @@ def split_trajectories(trajectories: dict[str, Trajectory], min_traj_amount: int
 
     splitted_trajectories = [trajectory
                              for trajectory in splitted_trajectories
-                             if len(trajectory.trajectory) >= min_traj_amount]
+                             if len(trajectory.points) >= min_traj_amount]
 
     return splitted_trajectories
 
@@ -87,32 +89,18 @@ def add_duration(trajectories: list[Trajectory]) -> list[Trajectory]:
     """
     new_list = []
     for trajectory in trajectories:
-        point_one = trajectory.trajectory[0]
+        point_one = trajectory.points[0]
         new_trajectory = Trajectory([])
-        for segment in trajectory.trajectory[1:]:
+        for segment in trajectory.points[1:]:
             if point_one.venue_id != segment.venue_id:
-                new_trajectory.trajectory.append(point_one)
+                new_trajectory.points.append(point_one)
                 point_one = segment
-            # if its the same location just update the duration of it
+            # same location just update the duration
             else:
                 timestamp_one = point_one.utc_timestamp
                 timestamp_two = segment.utc_timestamp
                 new_duration = timestamp_two - timestamp_one
                 point_one.duration = new_duration + point_one.duration
-        new_trajectory.trajectory.append(point_one)
+        new_trajectory.points.append(point_one)
         new_list.append(new_trajectory)
     return new_list
-
-
-def process_trajectories(filename: str) -> list[Trajectory]:
-    raw = create_raw_trajectories(filename)
-    splitted = split_trajectories(raw, 1)
-    return add_duration(splitted)
-
-
-if __name__ == '__main__':
-    raw_traj = create_raw_trajectories('resources/dataset_TSMC2014_TKY.csv')
-    print(raw_traj)
-    splitted = split_trajectories(raw_traj, 1)
-    trajectories_w_duration = add_duration(splitted)
-#     main('resources/dataset_TSMC2014_TKY.csv', 3)
