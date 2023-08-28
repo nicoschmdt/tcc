@@ -1,8 +1,11 @@
 # Algorithm 4, Pag 6
+from algoritmos.zhang2015.roi import Clusters
 from algoritmos.zhang2015.zhang import ZhangTrajectory
 
 
-def get_groups(trajectories: list[ZhangTrajectory], alpha: float, k: int) -> list[list[ZhangTrajectory]]:
+def get_groups(trajectories: list[ZhangTrajectory], rois: Clusters, alpha: float, k: int) -> list[list[ZhangTrajectory]]:
+    assign_regions(trajectories, rois)
+
     groups = []
     not_grouped = [traj for traj in trajectories]
     for i, trajectory in enumerate(trajectories):
@@ -31,3 +34,12 @@ def get_groups(trajectories: list[ZhangTrajectory], alpha: float, k: int) -> lis
             anonymized.append(group)
 
     return anonymized
+
+
+def assign_regions(trajectories: list[ZhangTrajectory], rois: Clusters) -> None:
+    for trajectory in trajectories:
+        for roi in rois.clusters:
+            for poi in trajectory.pois:
+                if roi.belongs(poi):
+                    trajectory.rois |= roi
+                    break
