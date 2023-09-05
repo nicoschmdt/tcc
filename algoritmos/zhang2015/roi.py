@@ -19,7 +19,15 @@ class Clusters:
     clusters: list[RoI]
 
     def add_to_nearest_cluster(self, point: PoI) -> None:
-        pass
+        chosen_roi = None
+        calc_distance = float('inf')
+        for roi in self.clusters:
+            current_distance = distance(point.loc, roi.core.loc)
+            if current_distance < calc_distance:
+                chosen_roi = roi
+                calc_distance = current_distance
+
+        chosen_roi.points.append(point)
 
 
 def cluster_poi(points: set[PoI], spatial_radius: float, temporal_radius: timedelta, density_threshold) -> Clusters:
@@ -49,7 +57,7 @@ def cluster_poi(points: set[PoI], spatial_radius: float, temporal_radius: timede
 
 
 # Algorithm 3, Pag 5
-def expand_cluster(point: PoI, clusters: list[RoI], density_threshold, visited):
+def expand_cluster(point: PoI, clusters: list[RoI], density_threshold, visited) -> RoI:
     roi = RoI(
         core=point,
         points=[point]
@@ -89,6 +97,7 @@ def calculate_neighbours(points: set[PoI], spatial_radius: float, temporal_radiu
     """
     for i, point in enumerate(points):
         for candidate in points[i:]:
-            if distance(point.loc, candidate.loc) <= spatial_radius and time_difference(candidate.t, point.t) <= temporal_radius:
+            if distance(point.loc, candidate.loc) <= spatial_radius and time_difference(candidate.t,
+                                                                                        point.t) <= temporal_radius:
                 point.neighbours.append(candidate)
                 candidate.neighbours.append(point)
