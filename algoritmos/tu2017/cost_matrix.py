@@ -1,7 +1,6 @@
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta, datetime
 
 from algoritmos.tu2017.treat_data import TuPoint, TuTrajectory
-from algoritmos.utils.semantic import PoiCategory
 
 
 def create_cost_matrix(trajectories: list[TuTrajectory]) -> dict[TuTrajectory, list[tuple[float, TuTrajectory]]]:
@@ -63,7 +62,7 @@ def remove_from_cost_matrix(matrix: dict[TuTrajectory, list[tuple[float, TuTraje
 
 def get_loss(trajectory_a: TuTrajectory, trajectory_b: TuTrajectory) -> float:
     #  Si > Sj
-    if len(trajectory_a.trajectory) > len(trajectory_b.trajectory):
+    if len(trajectory_a.points) > len(trajectory_b.points):
         return spatio_temporal_loss(trajectory_a, trajectory_b)
     #  Si <= Sj
     return spatio_temporal_loss(trajectory_b, trajectory_a)
@@ -77,13 +76,13 @@ def spatio_temporal_loss(bigger_trajectory: TuTrajectory, smaller_trajectory: Tu
     """
 
     cost = 0
-    for point_bigger in bigger_trajectory.trajectory:
+    for point_bigger in bigger_trajectory.points:
         possible_match = []
-        for point_smaller in smaller_trajectory.trajectory:
+        for point_smaller in smaller_trajectory.points:
             possible_match.append(point_loss(point_bigger, point_smaller, bigger_trajectory.n, smaller_trajectory.n))
         cost += min(possible_match)
 
-    return cost / len(bigger_trajectory.trajectory)
+    return cost / len(bigger_trajectory.points)
 
 
 def point_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int) -> float:
@@ -100,7 +99,7 @@ def point_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int) -> float:
     return wt * t_loss + wl * s_loss
 
 
-def join_spacetime(point_a: TuPoint, point_b: TuPoint) -> (datetime, timedelta):
+def join_spacetime(point_a: TuPoint, point_b: TuPoint) -> tuple[datetime, timedelta]:
     """
     Calcula o novo tempo de inicio e de duração entre dois datetimes.
     """
@@ -151,22 +150,15 @@ def spatial_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int) -> floa
     return min(theta / spatial_threshold, 1)
 
 
-if __name__ == "__main__":
-    a = TuPoint(category={PoiCategory.Business}, latitude=0.0, longitude=0.0,
-                utc_timestamp=datetime(2012, 4, 3, 18, 20, 0, tzinfo=timezone.utc),
-                duration=timedelta(seconds=3600))
-    b = TuPoint(category={PoiCategory.Transport}, latitude=9.0, longitude=8.0,
-                utc_timestamp=datetime(2012, 4, 3, 19, 30, tzinfo=timezone.utc), duration=timedelta(0))
+def get_minimal_trajectory_merge(cost_matrix: dict[TuTrajectory, list[tuple[float, TuTrajectory]]]) -> tuple[TuTrajectory | None, TuTrajectory | None]:
+    minimal_cost_found = 1.0  # maximal cost
+    traj1 = None
+    traj2 = None
 
-    a_initPoint = a.utc_timestamp
-    print(f'{a_initPoint=}')
-    a_endPoint = a_initPoint + a.duration
-    print(f'{a_endPoint=}')
-    b_initPoint = b.utc_timestamp
-    print(f'{b_initPoint=}')
-    b_endPoint = b_initPoint + b.duration
-    print(f'{b_endPoint=}')
+    for trajectory in cost_matrix.keys():
+        for cost, candidate in cost_matrix[trajectory]:
+            if cost < minimal_cost_found:
+                traj1 = trajectory
+                traj2 = candidate
 
-    # d = calculate_new_duration(a_endPoint, b_endPoint)
-    print(join_spacetime(a, b))
-    # print(d)
+    return traj1, traj2
