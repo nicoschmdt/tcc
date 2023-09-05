@@ -17,7 +17,7 @@ class PoI:
 
 
 # Algorithm 2, Pag 4
-def extract_poi(trajectory: list[Point], min_angle: float, min_dist: float, min_stay_time: timedelta) -> (set[PoI], list[Point | PoI]):
+def extract_poi(trajectory: list[Point], min_angle: float, min_dist: float, min_stay_time: timedelta) -> tuple[set[PoI], list[Point | PoI]]:
     pois = {point_to_poi(trajectory[0])}
     new_points = [point_to_poi(trajectory[0])]
     current_pos = 1
@@ -49,7 +49,7 @@ def extract_poi(trajectory: list[Point], min_angle: float, min_dist: float, min_
                 )}
                 pois |= poi
                 new_points.append(poi)
-        else:  # TODO: acho valido considerar que é ponto anterior, atual e proximo
+        else:
             angle = compute_angle(
                 trajectory[current_pos-1].get_coordinates(), point.get_coordinates(), trajectory[current_pos+1].get_coordinates())
             if angle >= min_angle:
@@ -59,7 +59,7 @@ def extract_poi(trajectory: list[Point], min_angle: float, min_dist: float, min_
         current_pos = next_pos
     pois |= {point_to_poi(trajectory[-1])}  # adding the end
     new_points.append(point_to_poi(trajectory[-1]))
-    return pois, points
+    return pois, new_points
 
 
 def get_center(point: Point, point2: Point) -> tuple[float, float]:
