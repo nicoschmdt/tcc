@@ -21,11 +21,15 @@ class SemanticPoint:
     longitude: float
     utc_timestamp: datetime
     duration: timedelta
+    type: str = ""
+
+    def get_coordinates(self) -> tuple[float, float]:
+        return self.latitude, self.longitude
 
 
 @dataclass
 class SemanticTrajectory:
-    trajectory: list[SemanticPoint]
+    points: list[SemanticPoint]
     n: int = 1
 
 
@@ -36,9 +40,25 @@ def get_venue_category(trajectories: list[Trajectory]) -> list[SemanticTrajector
         tu_trajectory = SemanticTrajectory([])
         for point in trajectory.points:
             tu_point = modify_point(point)
-            tu_trajectory.trajectory.append(tu_point)
+            tu_trajectory.points.append(tu_point)
 
         altered_trajectories.append(tu_trajectory)
+
+    return altered_trajectories
+
+
+def get_category_with_type(trajectories: list[tuple[Trajectory, dict[PoiCategory, float]]]) -> \
+        list[tuple[list[SemanticPoint], dict[PoiCategory, float]]]:
+    altered_trajectories = []
+
+    for trajectory, user_settings in trajectories:
+        semantic = []
+        for point in trajectory.points:
+            sem_point = modify_point(point)
+            sem_point.type = point.venue_category
+            semantic.append(sem_point)
+
+        altered_trajectories.append((semantic, user_settings))
 
     return altered_trajectories
 
@@ -49,7 +69,9 @@ def modify_point(point: Point) -> SemanticPoint:
         point.latitude,
         point.longitude,
         point.utc_timestamp,
-        point.duration)
+        point.duration,
+        point.venue_category
+    )
 
 
 def generalize_venue_category(venue_category: str) -> PoiCategory:

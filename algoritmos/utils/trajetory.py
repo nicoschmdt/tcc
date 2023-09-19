@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from datetime import timedelta, datetime
 from typing import Sequence
 
+from algoritmos.utils.semantic import PoiCategory
+
 
 @dataclass
 class Point:
@@ -56,12 +58,12 @@ def create_point(point_info: Sequence[str]) -> Point:
 
 
 # acho que dá pra melhorar, dar um limite maximo de diferença de horário ou de proximidade
-def split_trajectories(trajectories: dict[str, Trajectory], min_traj_amount: int) -> list[Trajectory]:
+def split_trajectories(trajectories: dict[str, Trajectory], min_traj: int = 1) -> list[Trajectory]:
     """
     Divide as trajetórias por dia
-    Se o tamanho da trajetória for menor que min_traj_amount a trajetória é descartada
+    Se o tamanho da trajetória for menor que min_traj a trajetória é descartada
     """
-    splitted_trajectories = []
+    splitted = []
     for user_id in trajectories:
         trajectory = trajectories[user_id].points
         compare = trajectory[0]
@@ -70,16 +72,42 @@ def split_trajectories(trajectories: dict[str, Trajectory], min_traj_amount: int
             if compare.utc_timestamp.day == point.utc_timestamp.day:
                 lista.points.append(point)
             else:
-                splitted_trajectories.append(lista)
+                splitted.append(lista)
                 lista = Trajectory([point])
             compare = point
-        splitted_trajectories.append(lista)
+        splitted.append(lista)
 
-    splitted_trajectories = [trajectory
-                             for trajectory in splitted_trajectories
-                             if len(trajectory.points) >= min_traj_amount]
+    splitted = [trajectory for trajectory in splitted
+                if len(trajectory.points) >= min_traj]
 
-    return splitted_trajectories
+    return splitted
+
+
+def split_with_settings(trajectories: dict[str, tuple[Trajectory, dict[PoiCategory]]],
+                        min_traj: int = 1) -> list[tuple[Trajectory, dict[PoiCategory, float]]]:
+    """
+    Divide as trajetórias por dia
+    Se o tamanho da trajetória for menor que min_traj a trajetória é descartada
+    """
+    splitted = []
+    for user_id in trajectories:
+        trajectory, user_settings = trajectories[user_id]
+        compare = trajectory.points[0]
+        lista = Trajectory([compare])
+        for point in trajectory.points[1:]:
+            if compare.utc_timestamp.day == point.utc_timestamp.day:
+                lista.points.append(point)
+            else:
+                splitted.append((lista, user_settings))
+                lista = Trajectory([point])
+            compare = point
+        splitted.append((lista, user_settings))
+
+    splitted = [(trajectory, settings)
+                for trajectory, settings in splitted
+                if len(trajectory.points) >= min_traj]
+
+    return splitted
 
 
 def add_duration(trajectories: list[Trajectory]) -> list[Trajectory]:
