@@ -25,9 +25,12 @@ class Stop:
 
 @dataclass
 class Move:
-    locations: list[SemanticPoint]
+    locations: list[tuple[float, float]]
     start: datetime
     end: datetime
+
+    def get_duration(self) -> timedelta:
+        return self.end - self.start
 
 
 @dataclass
@@ -35,7 +38,7 @@ class Segmented:
     points: list[Stop | Move]
     privacy_settings: dict[PoiCategory, float]
 
-    def process_sensitivity(self, sensivity_rank: dict[PoiCategory, float]) -> None:
+    def process_sensitivity(self) -> None:
         trip_duration = self.points[-1].end - self.points[0].start
 
         for point in self.points:
@@ -43,7 +46,7 @@ class Segmented:
                 continue
 
             stop_s = (trip_duration - point.get_duration()) / trip_duration
-            point.sensitivity = pow(sensivity_rank[point.semantic], stop_s)
+            point.sensitivity = pow(self.privacy_settings[point.semantic], stop_s)
             
 
 @dataclass
@@ -51,6 +54,11 @@ class SubSegment:
     points: list[Stop | Move]
     init_index: int
     end_index: int
+
+    def index(self, point: [Stop | Move]) -> int:
+        for i, p in enumerate(self.points):
+            if p == point:
+                return i
 
 
 def identify_stops(trajectories: list[tuple[list[SemanticPoint], dict[PoiCategory, float]]], dist_threshold: float,
@@ -113,7 +121,7 @@ def identify_stops(trajectories: list[tuple[list[SemanticPoint], dict[PoiCategor
             points.append(Move(locations, move_points[0].utc_timestamp, move_points[-1].utc_timestamp))
 
         segmented_trajectory = Segmented(points, user_sensitivity_rank)
-        segmented_trajectory.process_sensitivity(user_sensitivity_rank)
+        segmented_trajectory.process_sensitivity()
         segmented_trajectories.append(segmented_trajectory)
 
     return segmented_trajectories

@@ -2,12 +2,14 @@ from algoritmos.naghizade2020.flipflop import flip_flop_exchange
 from algoritmos.naghizade2020.treat_data import Segmented, Stop, SubSegment
 
 
-def naghizade(trajectories: list[Segmented], pois: list[Stop], axis: float):
+def naghizade(trajectories: list[Segmented], pois: list[Stop], axis: float) -> list[Segmented]:
     anonymized = []
 
     for trajectory in trajectories:
         subtrajectories = get_sensitive_subtrajectory(trajectory)
         anonymized.append(flip_flop_exchange(trajectory, subtrajectories, pois, axis))
+
+    return anonymized
 
 
 # TODO: arrumar essa função
