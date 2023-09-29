@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from datetime import timedelta
 
-from algoritmos.utils.math_utils import distance, time_difference
+from geopy import distance
+from algoritmos.utils.math_utils import time_difference
 from algoritmos.zhang2015.poi import PoI
 
 
@@ -22,7 +23,7 @@ class Clusters:
         chosen_roi = None
         calc_distance = float('inf')
         for roi in self.clusters:
-            current_distance = distance(point.loc, roi.core.loc)
+            current_distance = distance.distance(point.loc, roi.core.loc).kilometers
             if current_distance < calc_distance:
                 chosen_roi = roi
                 calc_distance = current_distance
@@ -97,7 +98,7 @@ def calculate_neighbours(points: set[PoI], spatial_radius: float, temporal_radiu
     """
     for i, point in enumerate(points):
         for candidate in points[i:]:
-            if distance(point.loc, candidate.loc) <= spatial_radius and time_difference(candidate.t,
-                                                                                        point.t) <= temporal_radius:
+            if distance.distance(point.loc, candidate.loc).kilometers <= spatial_radius \
+                    and time_difference(candidate.t, point.t) <= temporal_radius:
                 point.neighbours.append(candidate)
                 candidate.neighbours.append(point)

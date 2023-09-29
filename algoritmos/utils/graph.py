@@ -1,13 +1,14 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
+from geopy import distance
 from algoritmos.utils.region import Region
 from algoritmos.utils.semantic import PoiCategory
 
 
 @dataclass
 class Graph:
-    vertices: set[Region]
-    poi_distribution: dict[PoiCategory, float]
+    vertices: set[Region] = field(default_factory=set)
+    poi_distribution: dict[PoiCategory, float] = field(default_factory=list)
 
     def add_vertex(self, region: Region) -> None:
         self.vertices.add(region)
@@ -57,16 +58,15 @@ def dijkstra(graph: Graph, source: Region):
         unchecked_vertices.add(vertex)
 
     # o nodo inicial recebe a distancia 0
-    distances[source] = 0
+    distances[source] = 0.0
 
     while unchecked_vertices:
-        selected_vertex = min(unchecked_vertices, key=lambda k: distances[k])
+        selected_vertex = min(unchecked_vertices, key=distances.get)
         unchecked_vertices.remove(selected_vertex)
 
         for neighbor in selected_vertex.neighbours:
-            # create def to get distance between two regions
-            distance = 0 # todo oq foi escrito acima
-            alt_distance = distances[selected_vertex] + distance
+            weight = distance.distance(selected_vertex.center_point, neighbor.center_point).kilometers
+            alt_distance = distances[selected_vertex] + weight
             if alt_distance < distances[neighbor]:
                 distances[neighbor] = alt_distance
                 previous[neighbor] = selected_vertex
@@ -84,11 +84,10 @@ def get_connected_region(graph: Graph, source: Region, destiny: Region) -> Regio
             break
         path.append(destiny)
         it = destiny
-    # TODO: revisar como funciona a região resultante
+    # TODO: revisar como funciona a região resultante, preciso ver com a fernanda como vai funcionar
     result = Region(
         center_point=source.center_point,
         area=source.area,
-        points=source.points,
         categories=source.categories,
         neighbours=source.neighbours
     )

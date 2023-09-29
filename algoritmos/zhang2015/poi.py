@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from geopy import distance
 
-from algoritmos.utils.math_utils import distance, compute_angle, time_difference
+from algoritmos.utils.math_utils import compute_angle, time_difference
 from algoritmos.utils.trajetory import Point
 
 
@@ -28,7 +29,7 @@ def extract_poi(trajectory: list[Point], min_angle: float, min_dist: float, min_
 
         next_point = None
         for index, candidate in enumerate(trajectory[current_pos:-1]):
-            if distance(point.get_coordinates(), candidate.get_coordinates()) > min_dist:
+            if distance.distance(point.get_coordinates(), candidate.get_coordinates()).kilometers > min_dist:
                 next_point = candidate
                 next_pos = index
                 break

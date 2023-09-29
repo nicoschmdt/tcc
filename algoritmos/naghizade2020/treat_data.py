@@ -1,8 +1,10 @@
+import itertools
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from algoritmos.utils.math_utils import time_difference, distance
+from algoritmos.utils.math_utils import time_difference
 from algoritmos.utils.semantic import PoiCategory, SemanticPoint
+from geopy import distance
 
 
 @dataclass
@@ -32,11 +34,15 @@ class Move:
     def get_duration(self) -> timedelta:
         return self.end - self.start
 
+    def get_distance(self) -> float:
+        return distance.distance(self.locations[0], self.locations[-1]).kilometers
+
 
 @dataclass
 class Segmented:
     points: list[Stop | Move]
     privacy_settings: dict[PoiCategory, float]
+    length: float = 0
 
     def process_sensitivity(self) -> None:
         trip_duration = self.points[-1].end - self.points[0].start
@@ -47,7 +53,13 @@ class Segmented:
 
             stop_s = (trip_duration - point.get_duration()) / trip_duration
             point.sensitivity = pow(self.privacy_settings[point.semantic], stop_s)
-            
+
+    def process_length(self) -> None:
+        trajectory_distance = 0
+        for point1, point2 in itertools.pairwise(self.points):
+            trajectory_distance += distance.distance(point1, point2).kilometers
+        self.length = trajectory_distance
+
 
 @dataclass
 class SubSegment:
@@ -72,7 +84,7 @@ def identify_stops(trajectories: list[tuple[list[SemanticPoint], dict[PoiCategor
         ref_point = traj_points[0]
         for compared_point in traj_points[1:]:
             #  possivel stop
-            if distance(ref_point.get_coordinates(), compared_point.get_coordinates()) < dist_threshold:
+            if distance.distance(ref_point.get_coordinates(), compared_point.get_coordinates()).kilometers < dist_threshold:
                 stay_points.append(ref_point)
                 if compared_point == traj_points[-1]:
                     stay_points.append(compared_point)
@@ -105,7 +117,7 @@ def identify_stops(trajectories: list[tuple[list[SemanticPoint], dict[PoiCategor
             if time_difference(stay_points[0].utc_timestamp, stay_points[-1].utc_timestamp) > temporal_threshold:
                 # se tiver algum move point guardado adiciona-se eles antes dos stay points
                 if move_points:
-                    locations = [stored for stored in move_points]
+                    locations = [stored.get_coordinates() for stored in move_points]
                     points.append(Move(locations, move_points[0].utc_timestamp, move_points[-1].utc_timestamp))
                     move_points = []
                 locations = [stored.get_coordinates() for stored in stay_points]
@@ -117,11 +129,12 @@ def identify_stops(trajectories: list[tuple[list[SemanticPoint], dict[PoiCategor
                 move_points.extend(stay_points)
 
         if move_points:
-            locations = [stored for stored in move_points]
+            locations = [stored.get_coordinates() for stored in move_points]
             points.append(Move(locations, move_points[0].utc_timestamp, move_points[-1].utc_timestamp))
 
         segmented_trajectory = Segmented(points, user_sensitivity_rank)
         segmented_trajectory.process_sensitivity()
+        segmented_trajectory.process_length()
         segmented_trajectories.append(segmented_trajectory)
 
     return segmented_trajectories
@@ -135,7 +148,7 @@ def get_semantic(points: list[SemanticPoint]) -> tuple[PoiCategory, str]:
     category_chosen = None
     type_chosen = None
     for point in points:
-        dist = distance(point.get_coordinates(), (x, y))
+        dist = distance.distance(point.get_coordinates(), (x, y)).kilometers
         if dist < min_dist:
             min_dist = dist
             category_chosen = point.category
