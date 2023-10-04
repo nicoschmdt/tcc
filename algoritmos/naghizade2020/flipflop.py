@@ -15,7 +15,7 @@ from algoritmos.utils.semantic import PoiCategory
 def stop_displacement(local: SubSegment, pois: list[Stop], boundary: float, settings: dict[PoiCategory, float]) -> SubSegment:
     foci1 = local.points[0].get_position()
     foci2 = local.points[-1].get_position()
-    dist_foci = distance.distance(foci1, foci2).kilometers
+    dist_foci = distance.distance(foci1, foci2).meters
     axis_maj = dist_foci + (0.2 * dist_foci)
     ellipsis_center = get_middle(foci1, foci2)
     angle = ellipsis_angle(foci1, foci2)
@@ -82,7 +82,7 @@ def osrm_get(coordinate1: tuple[float, float], coordinate2: tuple[float, float])
 def bounded(poi: Stop, local1: Stop, local2: Stop, dist_foci: float) -> bool:
     travel_time = time_difference(local1.start, local2.end)
     speed = dist_foci / (travel_time.total_seconds() / 3600)
-    new_distance = distance.distance(local1.get_position(), poi).kilometers + distance.distance(poi, local2.get_position()).kilometers
+    new_distance = distance.distance(local1.get_position(), poi).meters + distance.distance(poi, local2.get_position()).meters
     new_duration = timedelta(hours=new_distance / speed)
     if timedelta_diff(travel_time, new_duration) <= timedelta(minutes=15):
         return True
@@ -116,6 +116,10 @@ def stop_replacement(local: SubSegment, stop: Stop) -> None:
 # algorithm 3
 def flip_flop_exchange(trajectory: Segmented, subtrajectories: list[SubSegment], all_pois: list[Stop]) -> \
         Segmented:
+
+    if not subtrajectories:
+        return trajectory
+
     subsegments = []
     settings = trajectory.privacy_settings
     for local in subtrajectories:
@@ -131,11 +135,10 @@ def flip_flop_exchange(trajectory: Segmented, subtrajectories: list[SubSegment],
             subsegments.append(stop_displacement(local, all_pois, trajectory.length, settings))
 
     anonymized = []
-    begin = 0
-    for segment in subsegments:
-        if begin != segment.init_index:
-            anonymized.extend(trajectory.points[begin:segment.init_index])
-        anonymized.extend(segment.points[:-1])
+    if subsegments[0].init_index != 0:
+        anonymized.extend(trajectory.points[0:subsegments[0].init_index])
+    anonymized.extend([segment.points[:-1] for segment in subsegments])
+
     if len(trajectory.points) - 1 != subsegments[-1].end_index:
         anonymized.extend(trajectory.points[subsegments[-1].end_index:])
 

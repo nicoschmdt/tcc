@@ -1,5 +1,5 @@
 import itertools
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from algoritmos.utils.math_utils import time_difference
@@ -35,18 +35,17 @@ class Move:
         return self.end - self.start
 
     def get_distance(self) -> float:
-        return distance.distance(self.locations[0], self.locations[-1]).kilometers
+        return distance.distance(self.locations[0], self.locations[-1]).meters
 
 
 @dataclass
 class Segmented:
     points: list[Stop | Move]
-    privacy_settings: dict[PoiCategory, float]
+    privacy_settings: dict[PoiCategory, float] = field(default_factory=list)
     length: float = 0
 
     def process_sensitivity(self) -> None:
         trip_duration = self.points[-1].end - self.points[0].start
-
         for point in self.points:
             if isinstance(point, Move):
                 continue
@@ -55,9 +54,18 @@ class Segmented:
             point.sensitivity = pow(self.privacy_settings[point.semantic], stop_s)
 
     def process_length(self) -> None:
-        trajectory_distance = 0
+        trajectory_distance = 0.0
         for point1, point2 in itertools.pairwise(self.points):
-            trajectory_distance += distance.distance(point1, point2).kilometers
+            if isinstance(point1, Stop) and isinstance(point2, Stop):
+                trajectory_distance += distance.distance(point1.get_position(), point2.get_position()).meters
+            elif isinstance(point1, Stop) and isinstance(point2, Move):
+                trajectory_distance += distance.distance(point1.get_position(), point2.locations[0]).meters
+                trajectory_distance += point2.get_distance()
+            elif isinstance(point1, Move) and isinstance(point2, Stop):
+                if trajectory_distance == 0.0:
+                    trajectory_distance += point1.get_distance()
+                trajectory_distance += distance.distance(point1.locations[-1], point2.get_position()).meters
+
         self.length = trajectory_distance
 
 
@@ -84,7 +92,7 @@ def identify_stops(trajectories: list[tuple[list[SemanticPoint], dict[PoiCategor
         ref_point = traj_points[0]
         for compared_point in traj_points[1:]:
             #  possivel stop
-            if distance.distance(ref_point.get_coordinates(), compared_point.get_coordinates()).kilometers < dist_threshold:
+            if distance.distance(ref_point.get_coordinates(), compared_point.get_coordinates()).meters < dist_threshold:
                 stay_points.append(ref_point)
                 if compared_point == traj_points[-1]:
                     stay_points.append(compared_point)
@@ -96,7 +104,7 @@ def identify_stops(trajectories: list[tuple[list[SemanticPoint], dict[PoiCategor
                                        stay_points[-1].utc_timestamp) > temporal_threshold:
                         # se tiver algum move point guardado adiciona-se eles antes dos stay points
                         if move_points:
-                            locations = [stored for stored in move_points]
+                            locations = [stored.get_coordinates() for stored in move_points]
                             points.append(Move(locations, move_points[0].utc_timestamp, move_points[-1].utc_timestamp))
                             move_points = []
                         locations = [stored.get_coordinates() for stored in stay_points]
@@ -111,6 +119,7 @@ def identify_stops(trajectories: list[tuple[list[SemanticPoint], dict[PoiCategor
 
                 else:
                     move_points.append(ref_point)
+            ref_point = compared_point
 
         # os move points são antes dos stay points
         if stay_points:
@@ -148,7 +157,7 @@ def get_semantic(points: list[SemanticPoint]) -> tuple[PoiCategory, str]:
     category_chosen = None
     type_chosen = None
     for point in points:
-        dist = distance.distance(point.get_coordinates(), (x, y)).kilometers
+        dist = distance.distance(point.get_coordinates(), (x, y)).meters
         if dist < min_dist:
             min_dist = dist
             category_chosen = point.category
@@ -158,9 +167,4 @@ def get_semantic(points: list[SemanticPoint]) -> tuple[PoiCategory, str]:
 
 
 def get_all_pois(trajectories: list[Segmented]) -> list[Stop]:
-    all_poi = []
-    for trajectory in trajectories:
-        pois = [point for point in trajectory.points if isinstance(point, Stop)]
-        all_poi.extend(pois)
-
-    return all_poi
+    return [point for trajectory in trajectories for point in trajectory.points if isinstance(point, Stop)]
