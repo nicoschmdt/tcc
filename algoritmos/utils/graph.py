@@ -65,7 +65,7 @@ def dijkstra(graph: Graph, source: Region):
         unchecked_vertices.remove(selected_vertex)
 
         for neighbor in selected_vertex.neighbours:
-            weight = distance.distance(selected_vertex.center_point, neighbor.center_point).kilometers
+            weight = distance.distance(selected_vertex.center_point, neighbor.center_point).meters
             alt_distance = distances[selected_vertex] + weight
             if alt_distance < distances[neighbor]:
                 distances[neighbor] = alt_distance

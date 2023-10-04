@@ -18,7 +18,8 @@ class PoI:
 
 
 # Algorithm 2, Pag 4
-def extract_poi(trajectory: list[Point], min_angle: float, min_dist: float, min_stay_time: timedelta) -> tuple[set[PoI], list[Point | PoI]]:
+def extract_poi(trajectory: list[Point], min_angle: float, min_dist: float, min_stay_time: timedelta) -> \
+        tuple[set[PoI], list[Point | PoI]]:
     pois = {point_to_poi(trajectory[0])}
     new_points = [point_to_poi(trajectory[0])]
     current_pos = 1
@@ -29,7 +30,7 @@ def extract_poi(trajectory: list[Point], min_angle: float, min_dist: float, min_
 
         next_point = None
         for index, candidate in enumerate(trajectory[current_pos:-1]):
-            if distance.distance(point.get_coordinates(), candidate.get_coordinates()).kilometers > min_dist:
+            if distance.distance(point.get_coordinates(), candidate.get_coordinates()).meters > min_dist:
                 next_point = candidate
                 next_pos = index
                 break

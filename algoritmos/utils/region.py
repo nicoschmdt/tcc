@@ -13,10 +13,10 @@ class Region:
     neighbours: list['Region'] = field(default_factory=list)
 
     def is_inside(self, region: 'Region') -> bool:
-        return distance.distance(self.center_point, region.center_point).kilometers <= self.area
+        return distance.distance(self.center_point, region.center_point).meters <= self.area
 
     def is_neighbour(self, region: 'Region') -> bool:
-        return self.area * 2 >= distance.distance(self.center_point, region.center_point).kilometers > self.area
+        return self.area * 2 >= distance.distance(self.center_point, region.center_point).meters > self.area
 
     def join_region(self, region: 'Region') -> None:
         if self.is_neighbour(region):

@@ -34,7 +34,7 @@ def get_middle(loc1: tuple[float, float], loc2: tuple[float, float]) -> tuple[fl
 
 
 def get_minor_axis(center: tuple[float, float], foci1: tuple[float, float], major: float) -> float:
-    c = distance.distance(center, foci1).kilometers
+    c = distance.distance(center, foci1).meters
     a = major / 2
     return math.sqrt(pow(a, 2) - pow(c, 2)) * 2
 
