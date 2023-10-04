@@ -12,16 +12,15 @@ def naghizade(trajectories: list[Segmented], pois: list[Stop]) -> list[Segmented
     return anonymized
 
 
-# TODO: arrumar essa função
 def get_sensitive_subtrajectory(trajectory: Segmented) -> list[SubSegment]:
     init_index = None
     subtrajectories = []
     subtrajectory = []
     for i, segment in enumerate(trajectory.points):
         if isinstance(segment, Stop):
-            priv_level = trajectory.privacy_settings[segment.semantic]
+            current_sensitivity = trajectory.privacy_settings[segment.semantic]
             # o segmento é sensível e precisa ser substituido
-            if priv_level > segment.sensitivity:
+            if current_sensitivity < segment.sensitivity:
                 if subtrajectory:
                     subtrajectories.append(SubSegment(subtrajectory, init_index, i))
                 subtrajectory = [segment]
