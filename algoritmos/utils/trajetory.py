@@ -3,8 +3,6 @@ from dataclasses import dataclass
 from datetime import timedelta, datetime
 from typing import Sequence
 
-from algoritmos.utils.semantic import PoiCategory
-
 
 @dataclass
 class Point:
@@ -77,37 +75,7 @@ def split_trajectories(trajectories: dict[str, Trajectory], min_traj: int = 1) -
             compare = point
         splitted.append(lista)
 
-    splitted = [trajectory for trajectory in splitted
-                if len(trajectory.points) >= min_traj]
-
-    return splitted
-
-
-def split_with_settings(trajectories: dict[str, tuple[Trajectory, dict[PoiCategory]]],
-                        min_traj: int = 1) -> list[tuple[Trajectory, dict[PoiCategory, float]]]:
-    """
-    Divide as trajetórias por dia
-    Se o tamanho da trajetória for menor que min_traj a trajetória é descartada
-    """
-    splitted = []
-    for user_id in trajectories:
-        trajectory, user_settings = trajectories[user_id]
-        compare = trajectory.points[0]
-        lista = Trajectory([compare])
-        for point in trajectory.points[1:]:
-            if compare.utc_timestamp.day == point.utc_timestamp.day:
-                lista.points.append(point)
-            else:
-                splitted.append((lista, user_settings))
-                lista = Trajectory([point])
-            compare = point
-        splitted.append((lista, user_settings))
-
-    splitted = [(trajectory, settings)
-                for trajectory, settings in splitted
-                if len(trajectory.points) >= min_traj]
-
-    return splitted
+    return [trajectory for trajectory in splitted if len(trajectory.points) >= min_traj]
 
 
 def add_duration(trajectories: list[Trajectory]) -> list[Trajectory]:

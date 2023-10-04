@@ -4,7 +4,7 @@ from datetime import timedelta, datetime
 from algoritmos.utils.trajetory import Trajectory, Point
 
 
-class PoiCategory(Enum):
+class PoiCategory(str, Enum):
     Entertainment = auto()
     Education = auto()
     Scenery = auto()
@@ -82,7 +82,7 @@ def generalize_venue_category(venue_category: str) -> PoiCategory:
             'Photography Lab', 'Medical Center']):
         return PoiCategory.Business
     elif any(sub_str in venue_category for sub_str in
-             ['Factory', 'Military', 'Distillery', 'Government', 'Harbor', 'Facility', 'Winery', 'Brewery']):
+             ['Factory', 'Military', 'Distillery', 'Government', 'Harbor', 'Facility', 'Winery', 'Brewery', 'Tattoo']):
         return PoiCategory.Industry
     elif any(sub_str in venue_category for sub_str in
              ['Residential Building', 'Building', 'Shelter', 'Neighborhood', 'Home', 'Hotel', 'Housing', 'House']):
@@ -103,3 +103,30 @@ def generalize_venue_category(venue_category: str) -> PoiCategory:
              ['Train', 'Bike', 'Airport', 'Ferry', 'Station', 'Road', 'Moving', 'Transport', 'Subway', 'Bridge',
               'Travel', 'Taxi', 'Light Rail']):
         return PoiCategory.Transport
+
+
+def split_with_settings(trajectories: dict[str, tuple[Trajectory, dict[PoiCategory]]],
+                        min_traj: int = 1) -> list[tuple[Trajectory, dict[PoiCategory, float]]]:
+    """
+    Divide as trajetórias por dia
+    Se o tamanho da trajetória for menor que min_traj a trajetória é descartada
+    """
+    splitted = []
+    for user_id in trajectories:
+        trajectory, user_settings = trajectories[user_id]
+        compare = trajectory.points[0]
+        lista = Trajectory([compare])
+        for point in trajectory.points[1:]:
+            if compare.utc_timestamp.day == point.utc_timestamp.day:
+                lista.points.append(point)
+            else:
+                splitted.append((lista, user_settings))
+                lista = Trajectory([point])
+            compare = point
+        splitted.append((lista, user_settings))
+
+    splitted = [(trajectory, settings)
+                for trajectory, settings in splitted
+                if len(trajectory.points) >= min_traj]
+
+    return splitted
