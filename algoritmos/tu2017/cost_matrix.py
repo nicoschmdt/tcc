@@ -1,9 +1,11 @@
 from datetime import timedelta, datetime
 
 from algoritmos.tu2017.treat_data import TuPoint, TuTrajectory
+from algoritmos.utils.region import Region
 
 
-def create_cost_matrix(trajectories: list[TuTrajectory]) -> dict[TuTrajectory, list[tuple[float, TuTrajectory]]]:
+def create_cost_matrix(trajectories: list[TuTrajectory], regions) \
+        -> dict[int, list[tuple[float, int]]]:
     """
     Cria a matriz de custo C.
     Como Cij == Cji a matriz é preenchida somente na parte superior
@@ -13,62 +15,56 @@ def create_cost_matrix(trajectories: list[TuTrajectory]) -> dict[TuTrajectory, l
     matrix = {}
     for i, trajectory_one in enumerate(trajectories):
         cost_list = []
-
-        for trajectory_accounted in matrix.keys():
-            for trajectory_passed, value in matrix[trajectory_accounted]:
-                if trajectory_passed == trajectory_one:
-                    cost_list.append((value, trajectory_accounted))
+        for traj_id, values_list in matrix.items():
+            for value, traj_passed in values_list:
+                if traj_passed == trajectory_one:
+                    cost_list.append((value, traj_id))
 
         for j, trajectory_two in enumerate(trajectories[i:]):
             if trajectory_one != trajectory_two:
-                cost = get_loss(trajectory_one, trajectory_two)
-                cost_list.append((cost, trajectory_two))
+                cost = get_loss(trajectory_one, trajectory_two, regions)
+                cost_list.append((cost, trajectory_two.id))
 
-        matrix[trajectory_one] = cost_list
+        matrix[trajectory_one.id] = cost_list
     return matrix
 
 
-def add_trajectory_cost(matrix: dict[TuTrajectory, list[tuple[float, TuTrajectory]]],
-                        trajectory: TuTrajectory) -> dict[TuTrajectory, list[tuple[float, TuTrajectory]]]:
+def add_trajectory_cost(matrix: dict[int, list[tuple[float, int]]], trajectory: TuTrajectory, regions, compendium) -> None:
     """
     Adiciona uma trajetória a uma matriz de custo e calcula o custo de junção
     dessa trajetória com todas as outras presentes na matriz
     """
 
     cost_list = []
-    for matrix_trajectory in matrix.keys():
-        cost = get_loss(matrix_trajectory, trajectory)
-        cost_list.append((cost, matrix_trajectory))
-        matrix[matrix_trajectory].append((cost, trajectory))
+    for matrix_traj_id in matrix.keys():
+        cost = get_loss(compendium[matrix_traj_id], trajectory, regions)
+        cost_list.append((cost, matrix_traj_id))
+        matrix[matrix_traj_id].append((cost, trajectory.id))
 
-    matrix[trajectory] = cost_list
-    return matrix
+    matrix[trajectory.id] = cost_list
 
 
-def remove_from_cost_matrix(matrix: dict[TuTrajectory, list[tuple[float, TuTrajectory]]],
-                            trajectory: TuTrajectory) -> dict[TuTrajectory, list[tuple[float, TuTrajectory]]]:
+def remove_from_cost_matrix(matrix: dict[int, list[tuple[float, int]]], trajectory: TuTrajectory) -> None:
     """
     Remove da matriz de custo a trajetória recebida por parametro.
     """
 
-    matrix.pop(trajectory)
+    matrix.pop(trajectory.id)
 
     for matrix_trajectory in matrix.keys():
-        new_list = [(cost, traj) for (cost, traj) in matrix[matrix_trajectory] if traj != trajectory]
+        new_list = [(cost, traj) for (cost, traj) in matrix[matrix_trajectory] if traj != trajectory.id]
         matrix[matrix_trajectory] = new_list
 
-    return matrix
 
-
-def get_loss(trajectory_a: TuTrajectory, trajectory_b: TuTrajectory) -> float:
+def get_loss(trajectory_a: TuTrajectory, trajectory_b: TuTrajectory, regions) -> float:
     #  Si > Sj
     if len(trajectory_a.points) > len(trajectory_b.points):
-        return spatio_temporal_loss(trajectory_a, trajectory_b)
+        return spatio_temporal_loss(trajectory_a, trajectory_b, regions)
     #  Si <= Sj
-    return spatio_temporal_loss(trajectory_b, trajectory_a)
+    return spatio_temporal_loss(trajectory_b, trajectory_a, regions)
 
 
-def spatio_temporal_loss(bigger_trajectory: TuTrajectory, smaller_trajectory: TuTrajectory) -> float:
+def spatio_temporal_loss(bigger_trajectory: TuTrajectory, smaller_trajectory: TuTrajectory, regions) -> float:
     """
     Calcula a perda espaço-temporal entre duas trajetórias.
     Assume que a trajetória com mais pontos é o primeiro
@@ -79,13 +75,13 @@ def spatio_temporal_loss(bigger_trajectory: TuTrajectory, smaller_trajectory: Tu
     for point_bigger in bigger_trajectory.points:
         possible_match = []
         for point_smaller in smaller_trajectory.points:
-            possible_match.append(point_loss(point_bigger, point_smaller, bigger_trajectory.n, smaller_trajectory.n))
+            possible_match.append(point_loss(point_bigger, point_smaller, bigger_trajectory.n, smaller_trajectory.n, regions))
         cost += min(possible_match)
 
     return cost / len(bigger_trajectory.points)
 
 
-def point_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int) -> float:
+def point_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int, regions) -> float:
     """
     Args: n_a e n_b são a quantidade de trajetórias presentes na trajetória recebida anteriormente, é o parametro n
     Calcula a perda espaço-temporal da junção de dois pontos
@@ -94,7 +90,7 @@ def point_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int) -> float:
 
     wt, wl = 0.5, 0.5
     t_loss = temporal_loss(point_a, point_b, n_a, n_b)
-    s_loss = spatial_loss(point_a, point_b, n_a, n_b)
+    s_loss = spatial_loss(point_a, point_b, n_a, n_b, regions)
 
     return wt * t_loss + wl * s_loss
 
@@ -128,14 +124,14 @@ def temporal_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int) -> flo
     0T* = (dc - da)*ni + (dc - db)*nj /(ni+nj)
     0T = min((0T*/0Tm), 1)
     """
-    temporal_threshold = 28800  # 8 horas
+    temporal_threshold = timedelta(hours=8)  # 8 horas
     _, duration = join_spacetime(point_a, point_b)
 
-    theta = ((duration - point_a.duration) * n_a + (duration - point_b.duration) * n_b) / (n_a + n_b)
-    return min(theta / temporal_threshold, 1)
+    theta = (((duration - point_a.duration) * n_a + (duration - point_b.duration) * n_b) / (n_a + n_b)).total_seconds()
+    return min(theta / temporal_threshold.total_seconds(), 1)
 
 
-def spatial_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int) -> float:
+def spatial_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int, regions: dict[int, Region]) -> float:
     """
     Calcula a perda espacial da junção de dois pontos
     0Lm = 25km²
@@ -144,21 +140,25 @@ def spatial_loss(point_a: TuPoint, point_b: TuPoint, n_a: int, n_b: int) -> floa
     0L = min(0L* / 0Lm, 1)
     """
     spatial_threshold = 25000  # 25km²
-    area = point_a.region.area + point_b.region.area
+    area_a = sum([regions[reg_id].area for reg_id in point_a.region_id])
+    area_b = sum([regions[reg_id].area for reg_id in point_b.region_id])
+    area = area_a + area_b
 
-    theta = ((area - point_a.region.area) * n_a + (area - point_b.region.area) * n_b) / (n_a + n_b)
+    theta = ((area - area_a) * n_a + (area - area_b) * n_b) / (n_a + n_b)
     return min(theta / spatial_threshold, 1)
 
 
-def get_minimal_trajectory_merge(cost_matrix: dict[TuTrajectory, list[tuple[float, TuTrajectory]]]) -> tuple[TuTrajectory | None, TuTrajectory | None]:
+def get_min_merge_cost(cost_matrix: dict[int, list[tuple[float, int]]]) -> \
+        tuple[int, int]:
     minimal_cost_found = 1.0  # maximal cost
     traj1 = None
     traj2 = None
 
-    for trajectory in cost_matrix.keys():
-        for cost, candidate in cost_matrix[trajectory]:
+    for trajectory_id in cost_matrix.keys():
+        for cost, candidate in cost_matrix[trajectory_id]:
             if cost < minimal_cost_found:
-                traj1 = trajectory
+                minimal_cost_found = cost
+                traj1 = trajectory_id
                 traj2 = candidate
 
     return traj1, traj2
