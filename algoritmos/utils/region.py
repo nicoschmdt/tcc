@@ -2,34 +2,47 @@ import math
 from dataclasses import dataclass, field
 
 from geopy import distance
+
+from algoritmos.utils.math_utils import get_middle
 from algoritmos.utils.semantic import PoiCategory
 
 
 @dataclass
 class Region:
+    id: int
     center_point: tuple[float, float]
     area: int
     categories: dict[PoiCategory, int] = field(default_factory=list)
-    neighbours: list['Region'] = field(default_factory=list)
+    neighbours_id: set[int] = field(default_factory=set)  # TODO ver oq falta mudar de list pra set
+
+    def __hash__(self):
+        return hash(repr(self))
 
     def is_inside(self, region: 'Region') -> bool:
         return distance.distance(self.center_point, region.center_point).meters <= self.area
 
     def is_neighbour(self, region: 'Region') -> bool:
-        return self.area * 2 >= distance.distance(self.center_point, region.center_point).meters > self.area
+        value = distance.distance(self.center_point, region.center_point).meters
+        result = self.area * 2 >= value > self.area
 
-    def join_region(self, region: 'Region') -> None:
-        if self.is_neighbour(region):
-            self.neighbours.remove(region)
+        return result
 
-        self.area += region.area
+    def join_region(self, regions: set['Region']) -> None:
+        self.neighbours_id -= regions
+
+        self.area += sum([region.area for region in regions])/len(regions)
+        center_points = [region.center_point for region in regions]
+        x, y = [sum(tup) for tup in zip(*center_points)]
+        middle = (x/len(center_points), y/len(center_points))
+        self.center_point = get_middle(self.center_point, middle)
 
         for category in self.categories:
-            self.categories[category] += region.categories[category]
+            for region in regions:
+                self.categories[category] += region.categories[category]
 
     def add_neighbour(self, region: 'Region') -> None:
-        self.neighbours.append(region)
-        region.neighbours.append(self)
+        self.neighbours_id.add(region.id)
+        region.neighbours_id.add(self.id)
 
     def get_diversity(self) -> int:
         """
@@ -50,7 +63,9 @@ class Region:
 
         x = self.poi_distribution()
         y = general_poi_distribution
-        return sum(x[category] * math.log(x[category] / y[category]) for category in x)
+        category: PoiCategory
+        return sum([x[category] * math.log((x[category] / y[category])) for category in PoiCategory
+                    if x[category] != 0 if y[category] != 0])
 
     def poi_distribution(self) -> dict[PoiCategory, float]:
         """
@@ -61,16 +76,18 @@ class Region:
         return {category: self.categories[category] / poi_sum for category in self.categories}
 
 
-def get_possible_diversity(region_a: Region, region_b: Region) -> int:
-    diversity = 0
-    for category in region_a.categories.keys():
-        if region_a.categories[category] != 0 or region_b.categories[category] != 0:
-            diversity += 1
+def calculate_diversity(regions: set[Region]) -> int:
+    presence = {}
+    category: PoiCategory
+    for category in PoiCategory:
+        for region in regions:
+            if region.categories[category] != 0:
+                presence[category] = 1
 
-    return diversity
+    return sum(presence.values())
 
 
-def get_possible_closeness(region_a: Region, region_b: Region, general_distribution: dict[PoiCategory, float]) -> float:
+def calculate_closeness(region_a: Region, region_b: Region, general_distribution: dict[PoiCategory, float]) -> float:
     categories = {}
     poi_sum = 0
     for category in region_a.categories.keys():
@@ -80,3 +97,21 @@ def get_possible_closeness(region_a: Region, region_b: Region, general_distribut
     new_dist = {category: categories[category] / poi_sum for category in categories}
 
     return sum(new_dist[category] * math.log(new_dist[category] / general_distribution[category]) for category in new_dist)
+
+
+def get_closeness(regions: set[Region], dist: dict[PoiCategory, float]) -> float:
+    categories = {}
+    poi_sum = 0
+    category: PoiCategory
+    for category in PoiCategory:
+        for region in regions:
+            try:
+                categories[category] += region.categories[category]
+            except KeyError:
+                categories[category] = region.categories[category]
+        poi_sum += categories[category]
+
+    new_dist = {category: categories[category] / poi_sum for category in categories}
+
+    return sum(new_dist[category] * math.log(new_dist[category] / dist[category])
+               if new_dist[category] != 0 else 0 for category in new_dist)
