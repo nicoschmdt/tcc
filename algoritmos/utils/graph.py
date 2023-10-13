@@ -16,35 +16,31 @@ class Graph:
     def remove_vertex(self, region: Region) -> None:
         self.vertices.remove(region)
 
-    def prune_and_simplify(self) -> 'Graph':
+    def prune_and_simplify(self) -> \
+            tuple['Graph', dict[int, list[int]]]:
         new_graph = Graph()
-        united = set()
-        for i, region in enumerate(self.vertices):
-            if i in united:
+        not_visited = self.vertices.copy()
+        id_merged = {}
+        for region in self.vertices.copy():
+            if region not in not_visited:
                 continue
+            not_visited.remove(region)
 
-            # triangulo superior
-            for j, other_region in enumerate(self.vertices[i:]):
-                if i == j or j in united:
-                    # região com ela mesma ignora ou trajetória já considerada
-                    continue
+            remove = {other for other in not_visited if other.is_inside(region)}
+            if remove:
+                region.join_region(remove)
+                id_merged[region.id] = [reg.id for reg in remove]
+                not_visited -= remove
 
-                # se marcar alguma dessas condições abaixo tenque registrar a região já utilizada
-                if other_region.is_inside(region):
-                    # cria uma nova região com os dois pontos dentro
-                    united.add(j)
-                    region.join_region(other_region)
-                elif region.is_neighbour(other_region):
-                    # adiciona na vizinhança
-                    region.add_neighbour(other_region)
-                    other_region.add_neighbour(region)
-
+            neighbours = {other.id for other in not_visited if region.is_neighbour(other)}
+            print(f'{len(not_visited)}')
+            region.neighbours_id |= neighbours
             new_graph.add_vertex(region)
+        new_graph.poi_distribution = self.poi_distribution
+        return new_graph, id_merged
 
-        return new_graph
 
-
-def dijkstra(graph: Graph, source: Region):
+def dijkstra(graph: Graph, source: Region, regions: dict[int, Region]):
     """
     Calcula as distancias de todas as regiões dada uma região em específico
     """
@@ -53,45 +49,55 @@ def dijkstra(graph: Graph, source: Region):
     previous = {}
     # todos os nodos são marcados como não visitados e recebem o valor inf
     for vertex in graph.vertices:
-        distances[vertex] = float('inf')
-        previous[vertex] = None
-        unchecked_vertices.add(vertex)
+        distances[vertex.id] = float('inf')
+        previous[vertex.id] = None
+        unchecked_vertices |= {vertex.id}
 
     # o nodo inicial recebe a distancia 0
-    distances[source] = 0.0
+    distances[source.id] = 0.0
 
     while unchecked_vertices:
-        selected_vertex = min(unchecked_vertices, key=distances.get)
-        unchecked_vertices.remove(selected_vertex)
+        selected_vertex_id = min(unchecked_vertices, key=distances.get)
+        unchecked_vertices.remove(selected_vertex_id)
+        vertex = regions[selected_vertex_id]
 
-        for neighbor in selected_vertex.neighbours:
-            weight = distance.distance(selected_vertex.center_point, neighbor.center_point).meters
-            alt_distance = distances[selected_vertex] + weight
-            if alt_distance < distances[neighbor]:
-                distances[neighbor] = alt_distance
-                previous[neighbor] = selected_vertex
+        for neighbour_id in vertex.neighbours_id:
+            neighbour = regions[neighbour_id]
+            weight = distance.distance(vertex.center_point, neighbour.center_point).meters
+            alt_distance = distances[vertex.id] + weight
+            if alt_distance < distances[neighbour.id]:
+                distances[neighbour] = alt_distance
+                previous[neighbour] = vertex.id
 
     return distances, previous
 
 
-def get_connected_region(graph: Graph, source: Region, destiny: Region) -> Region:
-    distances, previous = dijkstra(graph, source)
+def get_connected_region(graph: Graph, sources: list[int], destinies: list[int],
+                         regions: dict[int, Region]) -> set[Region]:
+    intersection = set(sources) & set(destinies)
+    if intersection:
+        ids = list(set(sources) | set(destinies))
+        return {regions[region_id] for region_id in ids}
+
+    cost = -1
+    start = None
+    final = None
+    for init in sources:
+        for end in destinies:
+            if distance.distance(regions[init].center_point, regions[end].center_point) > cost:
+                start = init
+                final = end
+
+    distances, previous = dijkstra(graph, regions[start], regions)
+    destiny = final
     path = [destiny]
     it = destiny
-    while destiny != source:
+    while destiny != start:
         destiny = previous[it]
         if destiny is None:
             break
         path.append(destiny)
         it = destiny
-    # TODO: revisar como funciona a região resultante, preciso ver com a fernanda como vai funcionar
-    result = Region(
-        center_point=source.center_point,
-        area=source.area,
-        categories=source.categories,
-        neighbours=source.neighbours
-    )
-    for region in path:
-        result.join_region(region)
 
-    return result
+    result = set(sources) | set(destinies) | set(path)
+    return {regions[region_id] for region_id in result}
