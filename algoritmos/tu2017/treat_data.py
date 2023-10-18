@@ -3,7 +3,8 @@ from datetime import timedelta, datetime
 from itertools import pairwise
 
 from algoritmos.utils.semantic import SemanticTrajectory, SemanticPoint, PoiCategory
-from ..utils.graph import Graph, Region
+from algoritmos.tu2017.graph import Graph
+from algoritmos.tu2017.region import Region
 
 AREA_RANGE = 150
 
@@ -31,16 +32,16 @@ class TuTrajectory:
         updated_points = []
         for point, compared in pairwise(self.points):
             # o próximo ponto começa temporalmente depois do atual
-            if point.utc_timestamp + point.duration < compared.utc_timestamp:
+            if point.timestamp + point.duration < compared.timestamp:
                 updated_points.append(point)
                 continue
 
             else:
                 # Calcula o tempo final de um ponto com base no inicio do próximo e atualiza a duração
-                init = point.utc_timestamp
+                init = point.timestamp
                 duration = point.duration
-                new_duration = duration - (init + duration - compared.utc_timestamp)
-                updated_points.append(TuPoint(point.utc_timestamp, new_duration, point.region_id))
+                new_duration = duration - (init + duration - compared.timestamp)
+                updated_points.append(TuPoint(point.timestamp, new_duration, point.region_id))
 
         self.points = updated_points
 
@@ -56,7 +57,7 @@ def construct_graph(trajectories: list[SemanticTrajectory]) -> tuple[Graph, list
         tu_points = []
         for point in trajectory.points:
             region = construct_region(point, region_id)
-            tu_points.append(TuPoint(point.utc_timestamp, point.duration, [region_id]))
+            tu_points.append(TuPoint(point.timestamp, point.duration, [region_id]))
             region_id += 1
             graph.add_vertex(region)
 

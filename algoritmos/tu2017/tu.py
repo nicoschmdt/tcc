@@ -1,8 +1,7 @@
 from algoritmos.tu2017 import cost_matrix
 from algoritmos.tu2017.treat_data import TuPoint, TuTrajectory
-from algoritmos.utils import region
-from algoritmos.utils.graph import get_connected_region, Graph
-from algoritmos.utils.region import Region, calculate_diversity, get_closeness
+from algoritmos.tu2017.graph import get_connected_region, Graph
+from algoritmos.tu2017.region import Region, calculate_diversity, get_closeness
 
 
 def merging_trajectories(trajectories: list[TuTrajectory], graph, merge_cost_matrix,
@@ -12,10 +11,10 @@ def merging_trajectories(trajectories: list[TuTrajectory], graph, merge_cost_mat
 
     while len(trajectories) > 2:
         print(f'{len(trajectories)=}')
-        print(f'{len(merge_cost_matrix)=}')
-        first_trajectory_id, second_trajectory_id = cost_matrix.get_min_merge_cost(merge_cost_matrix)
-        first = compendium[first_trajectory_id]
-        second = compendium[second_trajectory_id]
+        first_id, second_id = cost_matrix.get_min_merge_cost(merge_cost_matrix)
+        print(f'{first_id=}, {second_id=}')
+        first = compendium[first_id]
+        second = compendium[second_id]
         # new trajectory
         tm = merge(first, second, graph, delta_l, delta_t, regions)
 
@@ -25,7 +24,8 @@ def merging_trajectories(trajectories: list[TuTrajectory], graph, merge_cost_mat
         cost_matrix.remove_from_cost_matrix(merge_cost_matrix, second)
 
         if tm.n < delta_k:
-            print('adjusting cost')  # TODO: como tá com k=2 não testei ainda
+            print(f'new id: {tm.id}')
+            compendium[tm.id] = tm
             cost_matrix.add_trajectory_cost(merge_cost_matrix, tm, regions, compendium)
             trajectories.append(tm)
         else:
@@ -118,7 +118,7 @@ def merge_points(point_a: TuPoint, point_b: TuPoint, graph: Graph, delta_l: floa
             neighbour = regions[neighbour_id]
             tmp = con_regions.copy()
             tmp |= {neighbour}
-            diversities[neighbour] = region.calculate_diversity(tmp)
+            diversities[neighbour] = calculate_diversity(tmp)
 
         if not diversities:
             break

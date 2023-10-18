@@ -19,7 +19,7 @@ class SemanticPoint:
     category: PoiCategory
     latitude: float
     longitude: float
-    utc_timestamp: datetime
+    timestamp: datetime
     duration: timedelta
     type: str = ""
 
@@ -55,7 +55,7 @@ def get_category_with_type(trajectories: list[tuple[Trajectory, dict[PoiCategory
         semantic = []
         for point in trajectory.points:
             sem_point = modify_point(point)
-            sem_point.type = point.venue_category
+            sem_point.type = point.category
             semantic.append(sem_point)
 
         altered_trajectories.append((semantic, user_settings))
@@ -65,12 +65,12 @@ def get_category_with_type(trajectories: list[tuple[Trajectory, dict[PoiCategory
 
 def modify_point(point: Point) -> SemanticPoint:
     return SemanticPoint(
-        generalize_venue_category(point.venue_category),
-        point.latitude,
-        point.longitude,
-        point.utc_timestamp,
+        generalize_venue_category(point.category),
+        point.lat,
+        point.lon,
+        point.timestamp,
         point.duration,
-        point.venue_category
+        point.category
     )
 
 
@@ -117,7 +117,7 @@ def split_with_settings(trajectories: dict[str, tuple[Trajectory, dict[PoiCatego
         compare = trajectory.points[0]
         lista = Trajectory([compare])
         for point in trajectory.points[1:]:
-            if compare.utc_timestamp.day == point.utc_timestamp.day:
+            if compare.timestamp.day == point.timestamp.day:
                 lista.points.append(point)
             else:
                 splitted.append((lista, user_settings))
@@ -125,8 +125,5 @@ def split_with_settings(trajectories: dict[str, tuple[Trajectory, dict[PoiCatego
             compare = point
         splitted.append((lista, user_settings))
 
-    splitted = [(trajectory, settings)
-                for trajectory, settings in splitted
-                if len(trajectory.points) >= min_traj]
-
-    return splitted
+    return [(trajectory, settings) for trajectory, settings in splitted
+            if len(trajectory.points) >= min_traj]
