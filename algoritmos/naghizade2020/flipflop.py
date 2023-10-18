@@ -13,9 +13,18 @@ from algoritmos.utils.semantic import PoiCategory
 
 # algorithm 1 -> the algorithm displaces the first stop with the retrieved POI
 def stop_displacement(local: SubSegment, pois: list[Stop], boundary: float, settings: dict[PoiCategory, float]) -> SubSegment:
-    foci1 = local.points[0].get_position()
-    foci2 = local.points[-1].get_position()
+    # apenas 1 stop point
+    if len(local.points) == 1:
+        stop = local.points[0]
+        foci1 = stop.locations[0]
+        foci2 = stop.locations[-1]
+    else:
+        foci1 = local.points[0].get_position()
+        foci2 = local.points[-1].get_position()
+
     dist_foci = distance.distance(foci1, foci2).meters
+    if foci1 == foci2:
+        dist_foci = 200
     axis_maj = dist_foci + (0.2 * dist_foci)
     ellipsis_center = get_middle(foci1, foci2)
     angle = ellipsis_angle(foci1, foci2)
@@ -33,7 +42,6 @@ def stop_displacement(local: SubSegment, pois: list[Stop], boundary: float, sett
     found_pois = [(segment, segment.sensitivity) for segment in find_poi
                   if settings[segment.semantic] < local.points[0].sensitivity]
     poi, _ = min(found_pois, key=lambda value: value[1])
-    # poi = filter_poi(find_poi)  #
     poi.sensitivity = settings[poi.semantic]
     new_segment = form_segment(local, poi)
     stop_replacement(new_segment, poi)
@@ -82,9 +90,14 @@ def osrm_get(coordinate1: tuple[float, float], coordinate2: tuple[float, float])
 def bounded(poi: Stop, local1: Stop, local2: Stop, dist_foci: float) -> bool:
     travel_time = time_difference(local1.start, local2.end)
     speed = dist_foci / (travel_time.total_seconds() / 3600)
-    new_distance = distance.distance(local1.get_position(), poi).meters + distance.distance(poi, local2.get_position()).meters
-    new_duration = timedelta(hours=new_distance / speed)
-    if timedelta_diff(travel_time, new_duration) <= timedelta(minutes=15):
+    if local1 != local2:
+        dist1 = distance.distance(local1.get_position(), poi.get_position()).kilometers
+        dist2 = distance.distance(poi.get_position(), local2.get_position()).kilometers
+        dist = dist1 + dist2
+    else:
+        dist = distance.distance(local1.get_position(), poi.get_position()).kilometers
+    new_duration = timedelta(hours=dist / speed)
+    if new_duration.total_seconds()*2 <= travel_time.total_seconds():
         return True
     return False
 
@@ -137,7 +150,7 @@ def flip_flop_exchange(trajectory: Segmented, subtrajectories: list[SubSegment],
     anonymized = []
     if subsegments[0].init_index != 0:
         anonymized.extend(trajectory.points[0:subsegments[0].init_index])
-    anonymized.extend([segment.points[:-1] for segment in subsegments])
+    anonymized.extend([points.locations for segment in subsegments for points in segment.points[:-1]])
 
     if len(trajectory.points) - 1 != subsegments[-1].end_index:
         anonymized.extend(trajectory.points[subsegments[-1].end_index:])

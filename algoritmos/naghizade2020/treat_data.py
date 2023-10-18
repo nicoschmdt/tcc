@@ -34,6 +34,11 @@ class Move:
     def get_duration(self) -> timedelta:
         return self.end - self.start
 
+    def get_position(self) -> tuple[float, float]:
+        x = sum([x for x, y in self.locations]) / len(self.locations)
+        y = sum([y for x, y in self.locations]) / len(self.locations)
+        return x, y
+
     def get_distance(self) -> float:
         return distance.distance(self.locations[0], self.locations[-1]).meters
 
@@ -100,17 +105,17 @@ def identify_stops(trajectories: list[tuple[list[SemanticPoint], dict[PoiCategor
             else:
                 if stay_points:
                     # stay points eram stay points
-                    if time_difference(stay_points[0].utc_timestamp,
-                                       stay_points[-1].utc_timestamp) > temporal_threshold:
+                    if time_difference(stay_points[0].timestamp,
+                                       stay_points[-1].timestamp) > temporal_threshold:
                         # se tiver algum move point guardado adiciona-se eles antes dos stay points
                         if move_points:
                             locations = [stored.get_coordinates() for stored in move_points]
-                            points.append(Move(locations, move_points[0].utc_timestamp, move_points[-1].utc_timestamp))
+                            points.append(Move(locations, move_points[0].timestamp, move_points[-1].timestamp))
                             move_points = []
                         locations = [stored.get_coordinates() for stored in stay_points]
                         semantic, sem_type = get_semantic(stay_points)
                         points.append(
-                            Stop(locations, stay_points[0].utc_timestamp, stay_points[-1].utc_timestamp, semantic,
+                            Stop(locations, stay_points[0].timestamp, stay_points[-1].timestamp, semantic,
                                  sem_type))
                     # stay points não eram stay points
                     else:
@@ -123,28 +128,28 @@ def identify_stops(trajectories: list[tuple[list[SemanticPoint], dict[PoiCategor
 
         # os move points são antes dos stay points
         if stay_points:
-            if time_difference(stay_points[0].utc_timestamp, stay_points[-1].utc_timestamp) > temporal_threshold:
+            if time_difference(stay_points[0].timestamp, stay_points[-1].timestamp) > temporal_threshold:
                 # se tiver algum move point guardado adiciona-se eles antes dos stay points
                 if move_points:
                     locations = [stored.get_coordinates() for stored in move_points]
-                    points.append(Move(locations, move_points[0].utc_timestamp, move_points[-1].utc_timestamp))
+                    points.append(Move(locations, move_points[0].timestamp, move_points[-1].timestamp))
                     move_points = []
                 locations = [stored.get_coordinates() for stored in stay_points]
                 semantic, sem_type = get_semantic(stay_points)
                 points.append(
-                    Stop(locations, stay_points[0].utc_timestamp, stay_points[-1].utc_timestamp, semantic, sem_type))
+                    Stop(locations, stay_points[0].timestamp, stay_points[-1].timestamp, semantic, sem_type))
             # stay points não eram stay points
             else:
                 move_points.extend(stay_points)
 
         if move_points:
             locations = [stored.get_coordinates() for stored in move_points]
-            points.append(Move(locations, move_points[0].utc_timestamp, move_points[-1].utc_timestamp))
+            points.append(Move(locations, move_points[0].timestamp, move_points[-1].timestamp))
 
-        segmented_trajectory = Segmented(points, user_sensitivity_rank)
-        segmented_trajectory.process_sensitivity()
-        segmented_trajectory.process_length()
-        segmented_trajectories.append(segmented_trajectory)
+        segmented = Segmented(points, user_sensitivity_rank)
+        segmented.process_sensitivity()
+        segmented.process_length()
+        segmented_trajectories.append(segmented)
 
     return segmented_trajectories
 
