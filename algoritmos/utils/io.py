@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from algoritmos.naghizade2020.treat_data import Stop, Move, Segmented
 from algoritmos.tu2017.treat_data import TuPoint, TuTrajectory
 from algoritmos.tu2017.graph import Graph
-from algoritmos.utils.region import Region
+from algoritmos.tu2017.region import Region
 from algoritmos.utils.semantic import PoiCategory
 from algoritmos.utils.trajetory import Point
 from algoritmos.zhang2015.group import ZhangTrajectory

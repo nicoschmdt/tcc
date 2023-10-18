@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 
 from geopy import distance
-from algoritmos.utils.region import Region
+from algoritmos.tu2017.region import Region
 from algoritmos.utils.semantic import PoiCategory
 
 
