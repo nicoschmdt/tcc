@@ -2,78 +2,77 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from geopy import distance
 
-from algoritmos.utils.math_utils import compute_angle, time_difference
+from algoritmos.utils.math_utils import compute_angle, time_difference, get_middle
 from algoritmos.utils.trajetory import Point
 
 
 @dataclass
 class PoI:
-    id: str
+    id: int
     loc: tuple[float, float]
     t: datetime
-    neighbours: list['PoI'] = field(default_factory=list)
+    neighbours: set[int] = field(default_factory=set)
 
     def __hash__(self):
         return hash(repr(self))
 
 
 # Algorithm 2, Pag 4
-def extract_poi(trajectory: list[Point], min_angle: float, min_dist: float, min_stay_time: timedelta) -> \
-        tuple[set[PoI], list[Point | PoI]]:
-    pois = {point_to_poi(trajectory[0])}
-    new_points = [point_to_poi(trajectory[0])]
+def extract_poi(trajectory: list[Point], min_angle: float, min_dist: float, min_stay_time: timedelta, counter: int) -> \
+        tuple[set[PoI], list[Point | PoI], int]:
+    pois = {point_to_poi(trajectory[0], counter)}
+    new_points = [point_to_poi(trajectory[0], counter)]
+    counter += 1
     current_pos = 1
     next_pos = 2
 
+    print('on extract_poi')
     while current_pos < len(trajectory):
         point = trajectory[current_pos]
-
         next_point = None
-        for index, candidate in enumerate(trajectory[current_pos:-1]):
+        for index, candidate in enumerate(trajectory[current_pos+1:-1]):
             if distance.distance(point.get_coordinates(), candidate.get_coordinates()).meters > min_dist:
                 next_point = candidate
-                next_pos = index
+                next_pos = index + current_pos
                 break
             new_points.append(candidate)
 
         if next_point is None:
             break
 
-        if time_difference(point.utc_timestamp, next_point.utc_timestamp) >= min_stay_time:
+        if time_difference(point.timestamp, next_point.timestamp) >= min_stay_time:
             if next_pos == current_pos + 1:
-                pois |= {point_to_poi(point)}
-                new_points.append(point_to_poi(point))
+                pois |= {point_to_poi(point, counter)}
+                new_points.append(point_to_poi(point, counter))
+                counter += 1
             else:
                 poi = {PoI(
-                    id=point.user_id,
-                    loc=get_center(point, next_point),
-                    t=point.utc_timestamp
+                    id=counter,
+                    loc=get_middle(point.get_coordinates(), next_point.get_coordinates()),
+                    t=point.timestamp
                 )}
+                counter += 1
                 pois |= poi
                 new_points.append(poi)
         else:
             angle = compute_angle(
                 trajectory[current_pos-1].get_coordinates(), point.get_coordinates(), trajectory[current_pos+1].get_coordinates())
             if angle >= min_angle:
-                pois |= {point_to_poi(point)}
-                new_points.append(point_to_poi(point))
+                pois |= {point_to_poi(point, counter)}
+                new_points.append(point_to_poi(point, counter))
+                counter += 1
 
         current_pos = next_pos
-    pois |= {point_to_poi(trajectory[-1])}  # adding the end
-    new_points.append(point_to_poi(trajectory[-1]))
-    return pois, new_points
+    pois |= {point_to_poi(trajectory[-1], counter)}  # adding the end
+    new_points.append(point_to_poi(trajectory[-1], counter))
+    counter += 1
+    return pois, new_points, counter
 
 
-def get_center(point: Point, point2: Point) -> tuple[float, float]:
-    latitude = (point.latitude + point2.latitude)/2
-    longitude = (point.longitude + point2.longitude)/2
-    return latitude, longitude
-
-
-def point_to_poi(point: Point) -> PoI:
+def point_to_poi(point: Point, counter: int) -> PoI:
     return PoI(
-        id=point.user_id,
+        id=counter,
         loc=point.get_coordinates(),
-        t=point.utc_timestamp
+        t=point.timestamp
     )
 
