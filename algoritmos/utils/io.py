@@ -4,9 +4,13 @@ from datetime import datetime, timedelta
 
 from algoritmos.naghizade2020.treat_data import Stop, Move, Segmented
 from algoritmos.tu2017.treat_data import TuPoint, TuTrajectory
-from algoritmos.utils.graph import Graph
+from algoritmos.tu2017.graph import Graph
 from algoritmos.utils.region import Region
 from algoritmos.utils.semantic import PoiCategory
+from algoritmos.utils.trajetory import Point
+from algoritmos.zhang2015.group import ZhangTrajectory
+from algoritmos.zhang2015.poi import PoI
+from algoritmos.zhang2015.roi import RoI
 
 
 class DCJSONEncoder(json.JSONEncoder):
@@ -113,13 +117,13 @@ def read_tu(name: str):
     return [read_tu_trajectory(trajectory) for trajectory in data]
 
 
-def read_naghizade(name: str):
+def read_naghizade(name: str) -> list[Segmented]:
     with open(name, 'r') as f:
         data = json.load(f)
 
     trajectories = []
     for trajectory in data:
-        locations = []
+        points = []
         for location in trajectory['points']:
             if 'semantic' in location:
                 locations = location['locations']
@@ -134,13 +138,77 @@ def read_naghizade(name: str):
                 end = datetime.strptime(location['end'], '%d/%m/%Y, %H:%M:%S')
                 loc = Move(locations, start, end)
 
-            locations.append(loc)
+            points.append(loc)
         privacy = trajectory['privacy_settings']
         settings = {}
         category: PoiCategory
         for category in PoiCategory:
             settings[category] = float(privacy[category.value])
         length = trajectory['length']
-        trajectories.append(Segmented(locations, settings, length))
+        trajectories.append(Segmented(points, settings, length))
 
     return trajectories
+
+
+def read_zhang(name: str) -> list[ZhangTrajectory]:
+    with open(name, 'r') as f:
+        data = json.load(f)
+
+    return get_zhang(data)
+
+
+def get_zhang(data) -> list[ZhangTrajectory]:
+    trajectories = []
+    for trajectory in data:
+        points = []
+        for point in trajectory['points']:
+            if 'id' in point:
+                points.append(read_poi(point))
+            else:
+                name = point['name']
+                uid = point['user_id']
+                venue = point['venue_id']
+                category = point['venue_category']
+                lat = point['latitude']
+                long = point['longitude']
+                timestamp = datetime.strptime(point['utc_timestamp'], '%d/%m/%Y, %H:%M:%S')
+                duration = timedelta(seconds=point['duration'])
+                points.append(Point(name, uid, venue, category, lat, long, timestamp, duration))
+        pois = set(trajectory['pois'])
+        rois = set(trajectory['rois'])
+        trajectories.append(ZhangTrajectory(points, pois, rois))
+    return trajectories
+
+
+def read_pois(name: str) -> set[PoI]:
+    with open(name, 'r') as f:
+        data = json.load(f)
+
+    pois = set()
+    for poi in data:
+        pois |= {read_poi(poi)}
+
+    return pois
+
+
+def read_poi(line) -> PoI:
+    t = datetime.strptime(line['t'], '%d/%m/%Y, %H:%M:%S')
+    return PoI(line['id'], line['loc'], t, set(line['neighbours']))
+
+
+def read_rois(name: str) -> dict[int, RoI]:
+    with open(name, 'r') as f:
+        data = json.load(f)
+
+    return {int(key): get_roi(value) for key, value in data.items()}
+
+
+def get_roi(line) -> RoI:
+    return RoI(line['id'], int(line['core']), set(line['points']))
+
+
+def read_groups(name: str) -> list[list[ZhangTrajectory]]:
+    with open(name, 'r') as f:
+        data = json.load(f)
+
+    return [get_zhang(line) for line in data]
