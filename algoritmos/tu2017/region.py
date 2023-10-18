@@ -12,8 +12,8 @@ class Region:
     id: int
     center_point: tuple[float, float]
     area: int
-    categories: dict[PoiCategory, int] = field(default_factory=list)
-    neighbours_id: set[int] = field(default_factory=set)  # TODO ver oq falta mudar de list pra set
+    categories: dict[PoiCategory, int] = field(default_factory=dict)
+    neighbours_id: set[int] = field(default_factory=set)
 
     def __hash__(self):
         return hash(repr(self))
