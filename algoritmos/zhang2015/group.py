@@ -8,6 +8,7 @@ from algoritmos.zhang2015.roi import Clusters
 
 @dataclass
 class ZhangTrajectory:
+    uid: str
     points: list[Point | PoI]
     pois: set[int]
     rois: set[int] = field(default_factory=set)

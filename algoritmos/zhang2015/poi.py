@@ -26,7 +26,6 @@ def extract_poi(trajectory: list[Point], min_angle: float, min_dist: float, min_
     current_pos = 1
     next_pos = 2
 
-    print('on extract_poi')
     while current_pos < len(trajectory):
         point = trajectory[current_pos]
         next_point = None
@@ -75,4 +74,3 @@ def point_to_poi(point: Point, counter: int) -> PoI:
         loc=point.get_coordinates(),
         t=point.timestamp
     )
-
