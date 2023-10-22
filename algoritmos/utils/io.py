@@ -101,13 +101,15 @@ def read_cost_matrix(name: str):
 def read_tu_trajectory(trajectory) -> TuTrajectory:
     points = []
     n = trajectory['n']
+    # uid = trajectory['uid']
+    uid = ['0']
     traj_id = trajectory['id']
     for point in trajectory['points']:
         date = datetime.strptime(point['utc_timestamp'], '%d/%m/%Y, %H:%M:%S')
         duration = timedelta(seconds=point['duration'])
         region_id = [int(reg_id) for reg_id in point['region_id']]
         points.append(TuPoint(date, duration, region_id))
-    return TuTrajectory(traj_id, points, n)
+    return TuTrajectory(uid, traj_id, points, n)
 
 
 def read_tu(name: str):
@@ -150,6 +152,13 @@ def read_naghizade(name: str) -> list[Segmented]:
     return trajectories
 
 
+def read_anon_zhang(name: str) -> list[list[ZhangTrajectory]]:
+    with open(name, 'r') as f:
+        data = json.load(f)
+
+    return [get_zhang(line) for line in data]
+
+
 def read_zhang(name: str) -> list[ZhangTrajectory]:
     with open(name, 'r') as f:
         data = json.load(f)
@@ -160,6 +169,7 @@ def read_zhang(name: str) -> list[ZhangTrajectory]:
 def get_zhang(data) -> list[ZhangTrajectory]:
     trajectories = []
     for trajectory in data:
+        uid = trajectory['uid']
         points = []
         for point in trajectory['points']:
             if 'id' in point:
@@ -176,7 +186,7 @@ def get_zhang(data) -> list[ZhangTrajectory]:
                 points.append(Point(name, uid, venue, category, lat, long, timestamp, duration))
         pois = set(trajectory['pois'])
         rois = set(trajectory['rois'])
-        trajectories.append(ZhangTrajectory(points, pois, rois))
+        trajectories.append(ZhangTrajectory(uid, points, pois, rois))
     return trajectories
 
 
