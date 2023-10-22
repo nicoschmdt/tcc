@@ -32,7 +32,7 @@ def process(name: str):
         reader = csv.reader(csvfile)
         next(reader)
         for row in reader:
-            user_id = int(row[0])
+            user_id = row[0]
             venue_id = row[1]
             category = row[3]
             lat = float(row[4])

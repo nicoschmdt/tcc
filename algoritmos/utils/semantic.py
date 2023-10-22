@@ -16,6 +16,7 @@ class PoiCategory(str, Enum):
 
 @dataclass
 class SemanticPoint:
+    uid: str
     category: PoiCategory
     latitude: float
     longitude: float
@@ -65,6 +66,7 @@ def get_category_with_type(trajectories: list[tuple[Trajectory, dict[PoiCategory
 
 def modify_point(point: Point) -> SemanticPoint:
     return SemanticPoint(
+        point.uid,
         generalize_venue_category(point.category),
         point.lat,
         point.lon,
