@@ -150,9 +150,9 @@ def flip_flop_exchange(trajectory: Segmented, subtrajectories: list[SubSegment],
     anonymized = []
     if subsegments[0].init_index != 0:
         anonymized.extend(trajectory.points[0:subsegments[0].init_index])
-    anonymized.extend([points.locations for segment in subsegments for points in segment.points[:-1]])
+    anonymized.extend([points for segment in subsegments for points in segment.points[:-1]])
 
     if len(trajectory.points) - 1 != subsegments[-1].end_index:
         anonymized.extend(trajectory.points[subsegments[-1].end_index:])
 
-    return Segmented(anonymized, trajectory.privacy_settings)
+    return Segmented(trajectory.uid, anonymized, trajectory.privacy_settings, trajectory.length)

@@ -45,6 +45,7 @@ class Move:
 
 @dataclass
 class Segmented:
+    uid: str
     points: list[Stop | Move]
     privacy_settings: dict[PoiCategory, float] = field(default_factory=list)
     length: float = 0
@@ -95,6 +96,7 @@ def identify_stops(trajectories: list[tuple[list[SemanticPoint], dict[PoiCategor
         stay_points = []
         move_points = []
         ref_point = traj_points[0]
+        uid = ref_point.uid
         for compared_point in traj_points[1:]:
             #  possivel stop
             if distance.distance(ref_point.get_coordinates(), compared_point.get_coordinates()).meters < dist_threshold:
@@ -146,7 +148,7 @@ def identify_stops(trajectories: list[tuple[list[SemanticPoint], dict[PoiCategor
             locations = [stored.get_coordinates() for stored in move_points]
             points.append(Move(locations, move_points[0].timestamp, move_points[-1].timestamp))
 
-        segmented = Segmented(points, user_sensitivity_rank)
+        segmented = Segmented(uid=uid, points=points, privacy_settings=user_sensitivity_rank)
         segmented.process_sensitivity()
         segmented.process_length()
         segmented_trajectories.append(segmented)

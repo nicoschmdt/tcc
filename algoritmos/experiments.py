@@ -3,7 +3,7 @@ from skmob.privacy import attacks
 from skmob.core.trajectorydataframe import TrajDataFrame
 
 from algoritmos.utils import processed
-from algoritmos.utils.io import read_anon_zhang
+from algoritmos.utils.io import read_anon_zhang, read_naghizade
 from algoritmos.utils.trajetory import process
 
 
@@ -161,5 +161,11 @@ def experiments():
     location_eval(z_trajectories)
 
 
+def expr_naghizade():
+    z_trajectories = process('../resources/dataset_TSMC2014_NYC.csv', False)
+    naghizade_t = read_naghizade('naghizade2020/anonymized.json')
+
+
 if __name__ == '__main__':
-    experiments()
+    # experiments()
+    expr_naghizade()
