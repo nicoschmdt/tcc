@@ -26,7 +26,7 @@ class Trajectory:
     points: list[Point]
 
 
-def process(name: str):
+def process(name: str, use_filter: bool = True):
     points = []
     with open(name) as csvfile:
         reader = csv.reader(csvfile)
@@ -41,7 +41,9 @@ def process(name: str):
             points.append([user_id, venue_id, category, lat, lon, timestamp])
 
     dataset = TrajDataFrame(points, user_id=0, latitude=3, longitude=4, datetime=5)
-    return filtering.filter(dataset, max_speed_kmh=10.)
+    if use_filter:
+        return filtering.filter(dataset, max_speed_kmh=10.)
+    return dataset
 
 
 def raw(name: str) -> dict[str, Trajectory]:
@@ -53,6 +55,8 @@ def raw(name: str) -> dict[str, Trajectory]:
             trajectories[uid] = Trajectory([])
             p = point(filtered, index)
             trajectories[uid].points.append(p)
+        else:
+            trajectories[uid].points.append(point(filtered, index))
 
     return trajectories
 
