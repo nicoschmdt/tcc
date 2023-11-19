@@ -203,6 +203,8 @@ def get_zhang(data) -> list[ZhangTrajectory]:
         uid = trajectory['uid']
         points = []
         for point in trajectory['points']:
+            if isinstance(point, list):
+                point = point[0]
             if 'id' in point:
                 points.append(read_poi(point))
             else:
