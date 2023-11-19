@@ -2,36 +2,52 @@ from algoritmos.tu2017 import cost_matrix
 from algoritmos.tu2017.treat_data import TuPoint, TuTrajectory
 from algoritmos.tu2017.graph import get_connected_region, Graph
 from algoritmos.tu2017.region import Region, calculate_diversity, get_closeness
+from algoritmos.utils import io
+from algoritmos.utils.io import read_costs
 
 
-def merging_trajectories(trajectories: list[TuTrajectory], graph, merge_cost_matrix,
-                         delta_k: int, delta_l: int, delta_t: float, regions):
+def merging(name: str, trajectories: list[TuTrajectory], graph,
+            delta_k: int, delta_l: int, delta_t: float, regions, removed: list[int] = None, next_m: int = 1):
     compendium = {trajectory.id: trajectory for trajectory in trajectories}
-    generalized_dataset = []
+    merge_cost = read_costs(f'tu2017/cost_matrix_{next_m}.json')
 
-    while len(trajectories) > 2:
+    if removed:
+        for tid in removed:
+            cost_matrix.remove(merge_cost, tid)
+
+    removed_ids = set()
+
+    print('anonymizing')
+    while len(trajectories) > 2 or len(merge_cost) > 2:
+        if len(merge_cost) <= 500 and next_m < 8:
+            next_matrix = cost_matrix.clean(read_costs(f'tu2017/cost_matrix_{next_m}.json'), removed_ids)
+            cost_matrix.merge_matrix(merge_cost, next_matrix)  # considerando apenas k=2
+            merge_cost = next_matrix
+            next_m += 1
+            removed_ids = set()
+
         print(f'{len(trajectories)=}')
-        first_id, second_id = cost_matrix.get_min_merge_cost(merge_cost_matrix)
+        first_id, second_id = cost_matrix.get_min_merge_cost(merge_cost)
         print(f'{first_id=}, {second_id=}')
         first = compendium[first_id]
         second = compendium[second_id]
+
         # new trajectory
         tm = merge(first, second, graph, delta_l, delta_t, regions)
 
         trajectories.remove(first)
         trajectories.remove(second)
-        cost_matrix.remove_from_cost_matrix(merge_cost_matrix, first)
-        cost_matrix.remove_from_cost_matrix(merge_cost_matrix, second)
+        cost_matrix.remove(merge_cost, first_id)
+        cost_matrix.remove(merge_cost, second_id)
+        removed_ids |= {first_id, second_id}
 
         if tm.n < delta_k:
             print(f'new id: {tm.id}')
             compendium[tm.id] = tm
-            cost_matrix.add_trajectory_cost(merge_cost_matrix, tm, regions, compendium)
+            cost_matrix.add_trajectory_cost(merge_cost, tm, regions, compendium)
             trajectories.append(tm)
         else:
-            generalized_dataset.append(tm)
-
-    return generalized_dataset
+            io.append(tm, name)
 
 
 def merge(trajectory: TuTrajectory, trajectory2: TuTrajectory, graph: Graph, delta_l: int,
@@ -48,6 +64,8 @@ def merge_trajectories(bigger: TuTrajectory, smaller: TuTrajectory, graph: Graph
                        delta_l: int, delta_t: float, regions) -> TuTrajectory:
     """
     """
+    uid = bigger.uid
+    uid.extend(smaller.uid)
     points = [(index, False) for index, _ in enumerate(smaller.points)]
 
     for point in bigger.points:
@@ -59,7 +77,8 @@ def merge_trajectories(bigger: TuTrajectory, smaller: TuTrajectory, graph: Graph
     altered_points = merge_remaining_points(smaller, points, bigger.n, graph, delta_l, delta_t, regions)
 
     n = bigger.n + smaller.n
-    semantic_trajectory = TuTrajectory(id=bigger.id, points=altered_points, n=n)
+    ids = bigger.ids_merged.copy() | {smaller.id}
+    semantic_trajectory = TuTrajectory(uid=uid, id=bigger.id, points=altered_points, n=n, ids_merged=ids)
     semantic_trajectory.reshape()
     return semantic_trajectory
 

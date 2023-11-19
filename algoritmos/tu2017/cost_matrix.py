@@ -1,11 +1,11 @@
 from datetime import timedelta, datetime
 
 from algoritmos.tu2017.treat_data import TuPoint, TuTrajectory
-from algoritmos.utils.region import Region
+from algoritmos.tu2017.region import Region
+from algoritmos.utils.io import write
 
 
-def create_cost_matrix(trajectories: list[TuTrajectory], regions) \
-        -> dict[int, list[tuple[float, int]]]:
+def create_cost_matrix(trajectories: list[TuTrajectory], regions) -> None:
     """
     Cria a matriz de custo C.
     Como Cij == Cji a matriz é preenchida somente na parte superior
@@ -13,20 +13,35 @@ def create_cost_matrix(trajectories: list[TuTrajectory], regions) \
     """
 
     matrix = {}
-    for i, trajectory_one in enumerate(trajectories):
+    part = 1
+    for i, trajectory_one in enumerate(trajectories[:-1]):
+        # verificar se o tam do matrix tá grande demais, salvar e resetar
+        print(f'{i}/{len(trajectories)-1}')
+        if i == (2000*part):
+            write(matrix, f'cost_matrix_{part}.json')
+            part += 1
+            matrix = {}
         cost_list = []
-        for traj_id, values_list in matrix.items():
-            for value, traj_passed in values_list:
-                if traj_passed == trajectory_one:
-                    cost_list.append((value, traj_id))
-
         for j, trajectory_two in enumerate(trajectories[i:]):
-            if trajectory_one != trajectory_two:
+            if trajectory_one == trajectory_two:
+                continue
+
+            end = trajectory_one.points[-1].utc_timestamp
+            init = trajectory_two.points[0].utc_timestamp
+            if init > end:
+                d = init - end
+            else:
+                end = trajectory_one.points[0].utc_timestamp
+                init = trajectory_two.points[-1].utc_timestamp
+                d = init - end
+
+            if d.total_seconds() < timedelta(hours=8).total_seconds():
                 cost = get_loss(trajectory_one, trajectory_two, regions)
                 cost_list.append((cost, trajectory_two.id))
 
         matrix[trajectory_one.id] = cost_list
-    return matrix
+
+    write(matrix, f'tu2017/cost_matrix_{part}.json')
 
 
 def add_trajectory_cost(matrix: dict[int, list[tuple[float, int]]], trajectory: TuTrajectory, regions, compendium) -> None:
@@ -39,21 +54,34 @@ def add_trajectory_cost(matrix: dict[int, list[tuple[float, int]]], trajectory: 
     for matrix_traj_id in matrix.keys():
         cost = get_loss(compendium[matrix_traj_id], trajectory, regions)
         cost_list.append((cost, matrix_traj_id))
-        matrix[matrix_traj_id].append((cost, trajectory.id))
 
     matrix[trajectory.id] = cost_list
 
 
-def remove_from_cost_matrix(matrix: dict[int, list[tuple[float, int]]], trajectory: TuTrajectory) -> None:
+def remove(matrix: dict[int, list[tuple[float, int]]], tid: int) -> None:
     """
     Remove da matriz de custo a trajetória recebida por parametro.
     """
 
-    matrix.pop(trajectory.id)
+    if tid in matrix.keys():
+        matrix.pop(tid)
 
     for matrix_trajectory in matrix.keys():
-        new_list = [(cost, traj) for (cost, traj) in matrix[matrix_trajectory] if traj != trajectory.id]
+        new_list = [(cost, traj) for (cost, traj) in matrix[matrix_trajectory] if traj != tid]
         matrix[matrix_trajectory] = new_list
+
+
+def merge_matrix(matrix1, matrix2) -> None:
+    for tid, costs in matrix1.items():
+        matrix2[tid] = costs
+
+
+def clean(matrix: dict[int, list[tuple[float, int]]], removed: set[int]) -> dict[int, list[tuple[float, int]]]:
+    cleaned = {}
+    for traj_id, costs in matrix.items():
+        if traj_id not in removed:
+            cleaned[traj_id] = [(value, tid) for value, tid in costs if tid not in removed]
+    return cleaned
 
 
 def get_loss(trajectory_a: TuTrajectory, trajectory_b: TuTrajectory, regions) -> float:
@@ -161,4 +189,5 @@ def get_min_merge_cost(cost_matrix: dict[int, list[tuple[float, int]]]) -> \
                 traj1 = trajectory_id
                 traj2 = candidate
 
+    print(f'cost={minimal_cost_found}')
     return traj1, traj2

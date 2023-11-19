@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta, datetime
 from itertools import pairwise
 
@@ -18,9 +18,11 @@ class TuPoint:
 
 @dataclass
 class TuTrajectory:
+    uid: list[str]
     id: int
     points: list[TuPoint]
     n: int = 1
+    ids_merged: set[int] = field(default_factory=set)
 
     def __hash__(self):
         return hash(repr(self))
@@ -32,16 +34,16 @@ class TuTrajectory:
         updated_points = []
         for point, compared in pairwise(self.points):
             # o próximo ponto começa temporalmente depois do atual
-            if point.timestamp + point.duration < compared.timestamp:
+            if point.utc_timestamp + point.duration < compared.utc_timestamp:
                 updated_points.append(point)
                 continue
 
             else:
                 # Calcula o tempo final de um ponto com base no inicio do próximo e atualiza a duração
-                init = point.timestamp
+                init = point.utc_timestamp
                 duration = point.duration
-                new_duration = duration - (init + duration - compared.timestamp)
-                updated_points.append(TuPoint(point.timestamp, new_duration, point.region_id))
+                new_duration = duration - (init + duration - compared.utc_timestamp)
+                updated_points.append(TuPoint(point.utc_timestamp, new_duration, point.region_id))
 
         self.points = updated_points
 
@@ -54,6 +56,7 @@ def construct_graph(trajectories: list[SemanticTrajectory]) -> tuple[Graph, list
     trajectory_id = 0
     tu_trajectories = []
     for trajectory in trajectories:
+        uid = [trajectory.points[0].uid]
         tu_points = []
         for point in trajectory.points:
             region = construct_region(point, region_id)
@@ -66,7 +69,7 @@ def construct_graph(trajectories: list[SemanticTrajectory]) -> tuple[Graph, list
                 categories[point.category] += 1
             except KeyError:
                 categories[point.category] = 1
-        tu_trajectories.append(TuTrajectory(trajectory_id, tu_points))
+        tu_trajectories.append(TuTrajectory(uid=uid, id=trajectory_id, points=tu_points))
         trajectory_id += 1
     graph.poi_distribution = {category: categories[category] / poi_sum for category in categories}
     return graph, tu_trajectories
