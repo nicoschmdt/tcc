@@ -12,7 +12,7 @@ from algoritmos.utils.semantic import PoiCategory
 
 
 # algorithm 1 -> the algorithm displaces the first stop with the retrieved POI
-def stop_displacement(local: SubSegment, pois: list[Stop], boundary: float, settings: dict[PoiCategory, float]) -> SubSegment:
+def stop_displacement(local: SubSegment, pois: list[Stop], boundary: float, settings: dict[PoiCategory, float]) -> tuple[SubSegment | None, bool]:
     # apenas 1 stop point
     if len(local.points) == 1:
         stop = local.points[0]
@@ -41,12 +41,16 @@ def stop_displacement(local: SubSegment, pois: list[Stop], boundary: float, sett
 
     found_pois = [(segment, segment.sensitivity) for segment in find_poi
                   if settings[segment.semantic] < local.points[0].sensitivity]
+
+    if not found_pois:
+        return None, False
+
     poi, _ = min(found_pois, key=lambda value: value[1])
     poi.sensitivity = settings[poi.semantic]
     new_segment = form_segment(local, poi)
     stop_replacement(new_segment, poi)
 
-    return new_segment
+    return new_segment, True
 
 
 def form_segment(segment: SubSegment, new_stop: Stop) -> SubSegment:
@@ -145,7 +149,9 @@ def flip_flop_exchange(trajectory: Segmented, subtrajectories: list[SubSegment],
             stop_replacement(local, least_sensitive)
             subsegments.append(local)
         else:
-            subsegments.append(stop_displacement(local, all_pois, trajectory.length, settings))
+            subsegment, found = stop_displacement(local, all_pois, trajectory.length, settings)
+            if found:
+                subsegments.append(subsegment)
 
     anonymized = []
     if subsegments[0].init_index != 0:
