@@ -2,7 +2,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from geopy import distance
 
+from algoritmos.utils import semantic
 from algoritmos.utils.math_utils import compute_angle, time_difference, get_middle
+from algoritmos.utils.semantic import PoiCategory
 from algoritmos.utils.trajetory import Point
 
 
@@ -11,6 +13,7 @@ class PoI:
     id: int
     loc: tuple[float, float]
     t: datetime
+    semantic: PoiCategory
     neighbours: set[int] = field(default_factory=set)
 
     def __hash__(self):
@@ -32,7 +35,7 @@ def extract_poi(trajectory: list[Point], min_angle: float, min_dist: float, min_
         for index, candidate in enumerate(trajectory[current_pos+1:-1]):
             if distance.distance(point.get_coordinates(), candidate.get_coordinates()).meters > min_dist:
                 next_point = candidate
-                next_pos = index + current_pos
+                next_pos = (index + 1) + current_pos
                 break
             new_points.append(candidate)
 
@@ -48,7 +51,8 @@ def extract_poi(trajectory: list[Point], min_angle: float, min_dist: float, min_
                 poi = {PoI(
                     id=counter,
                     loc=get_middle(point.get_coordinates(), next_point.get_coordinates()),
-                    t=point.timestamp
+                    t=point.timestamp,
+                    semantic=semantic.generalize_venue_category(point.category)
                 )}
                 counter += 1
                 pois |= poi
@@ -72,5 +76,6 @@ def point_to_poi(point: Point, counter: int) -> PoI:
     return PoI(
         id=counter,
         loc=point.get_coordinates(),
-        t=point.timestamp
+        t=point.timestamp,
+        semantic=semantic.generalize_venue_category(point.category)
     )

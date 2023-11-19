@@ -32,14 +32,14 @@ class Clusters:
         chosen_roi.points |= {point.id}
 
 
-def cluster_poi(points: set[PoI], compendium, spatial_radius: float, temporal_radius: timedelta, density_threshold) -> Clusters:
+def cluster_poi(points: set[PoI], compendium, spatial_radius: float, temporal_radius: timedelta, density_threshold) -> tuple[Clusters, list[PoI]]:
     calculate_neighbours(points, spatial_radius, temporal_radius)
     print(f'clustering poi')
     clusters = []
     visited = []
     noise_candidate = []
     id_count = 0
-    for point in points:
+    for i, point in enumerate(points):
         if point not in visited:
             visited.append(point)
             if len(point.neighbours) < density_threshold:
@@ -50,13 +50,13 @@ def cluster_poi(points: set[PoI], compendium, spatial_radius: float, temporal_ra
 
     final_clusters = Clusters(clusters=clusters)
     noise = []
-    for candidate in noise_candidate:
+    for i, candidate in enumerate(noise_candidate):
         if len(candidate.neighbours) > 0:
             final_clusters.add_to_nearest_cluster(candidate, compendium)
         else:
             noise.append(candidate)
 
-    return final_clusters
+    return final_clusters, noise
 
 
 # Algorithm 3, Pag 5
