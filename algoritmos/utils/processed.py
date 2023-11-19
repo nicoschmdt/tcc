@@ -30,24 +30,23 @@ def tu(trajectories: list[TuTrajectory],  regions: dict[int, Region]) -> TrajDat
         for point in trajectory.points:
             timestamp = point.utc_timestamp
             coordinates = [regions[rid].center_point for rid in point.region_id]
-            lat, lon = [sum(tup) for tup in zip(*coordinates)]
+            lat, lon = [sum(tup)/len(tup) for tup in zip(*coordinates)]
             for uid in trajectory.uid:
                 points.append([uid, lat, lon, timestamp])
 
     return TrajDataFrame(points, user_id=0, latitude=1, longitude=2, datetime=3)
 
 
-def zhang(trajectories: list[list[ZhangTrajectory]]) -> TrajDataFrame:
+def zhang(group: list[ZhangTrajectory]) -> TrajDataFrame:
     points = []
 
-    for group in trajectories:
-        for trajectory in group:
-            uid = trajectory.uid
-            for point in trajectory.points:
-                if isinstance(point, Point):
-                    points.append([uid, point.lat, point.lon, point.timestamp])
-                elif isinstance(point, PoI):
-                    lat, lon = point.loc
-                    points.append([uid, lat, lon, point.t])
+    for trajectory in group:
+        uid = trajectory.uid
+        for point in trajectory.points:
+            if isinstance(point, Point):
+                points.append([uid, point.lat, point.lon, point.timestamp])
+            elif isinstance(point, PoI):
+                lat, lon = point.loc
+                points.append([uid, lat, lon, point.t])
 
     return TrajDataFrame(points, user_id=0, latitude=1, longitude=2, datetime=3)
